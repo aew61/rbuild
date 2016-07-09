@@ -112,9 +112,9 @@ def getVisualStudioVersionAndVsVarsAllPath():
 
     for version in possibleVersions:
         try:
-            _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, key%version, 0, _winreg.KEY_READ)
+            _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, key % version, 0, _winreg.KEY_READ)
             installedVersions.append(version)
-        except Exception, e:
+        except Exception:
             pass
 
     vsCommToolsPath = None
@@ -190,8 +190,8 @@ def PForkWithVisualStudio(appToExecute=None, argsForApp=[], wd=None, environment
     #                                    ' '.join(appAndArgs))
 
     cmdString = ('"%s" %s && %s') % (visualStudioUtilsPath,
-                                       getProcessorInfo()[1],
-                                       ' '.join(appAndArgs))
+                                     getProcessorInfo()[1],
+                                     ' '.join(appAndArgs))
 
     # allows additional environment variables to be set / altered.
     realEnv = dict(os.environ)
