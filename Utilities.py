@@ -171,7 +171,7 @@ def PForkWithVisualStudio(appToExecute=None, argsForApp=[], wd=None, environment
     # you want this build to use. Defaults to 2014
     visualStudioUtilsPath = getVisualStudioVersionAndVsVarsAllPath()[1]
     if visualStudioUtilsPath is None:
-        failExecution("Visual Studio compiler not present on system")
+        failExecution("Visual Studio compiler not detected")
 
     # we want to execute the command in the appropriate working directory.
     # so we will change into that directory at the beginning of the command
