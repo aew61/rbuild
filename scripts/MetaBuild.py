@@ -344,5 +344,3 @@ def help():
     print "                                     (default = OFF)."
     print ""
     print ""
-
-import LocalBuildRules
