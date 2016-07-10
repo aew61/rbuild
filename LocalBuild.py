@@ -27,7 +27,7 @@ if __name__ == "__main__":
     # bundle all directories and files into a tar.gz file and upload to share
     with tarfile.open(tarFileName, "w:gz") as tarFile:
         for item in os.listdir(currentDir):
-            if item != "LocalBuild.py" and "ReadMe" not in item and not item.startswith("."):
+            if item != "LocalBuild.py" and "readme" not in item.lower() and not item.startswith("."):
                 tarFile.add(item)
 
         # upload tarFile to shared directory
