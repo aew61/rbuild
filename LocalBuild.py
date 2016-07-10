@@ -1,7 +1,7 @@
 # SYSTEM IMPORTS
 import os
 import platform
-import shutil
+# import shutil
 import sys
 import tarfile
 
@@ -33,4 +33,4 @@ if __name__ == "__main__":
         # upload tarFile to shared directory
         if buildString != "0.0.0.0":
             share = os.path.join(os.environ["SHARE_PATH"], tarFileName)
-            shutil.copyfile(tarFileName, share)
+            Utilities.copyTree(tarFileName, share)
