@@ -32,5 +32,5 @@ if __name__ == "__main__":
 
         # upload tarFile to shared directory
         if buildString != "0.0.0.0":
-            share = os.path.join(os.environ["SHARE_PATH"], tarFileName)
+            share = os.path.join(os.environ["SHARE_PATH"], os.environ["JOB_NAME"], tarFileName)
             Utilities.copyTree(tarFileName, share)
