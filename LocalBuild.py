@@ -31,8 +31,9 @@ if __name__ == "__main__":
             if item != "LocalBuild.py" and "readme" not in item.lower() and not item.startswith("."):
                 tarFile.add(item)
 
-        # upload tarFile to shared directory
-        if buildString != "0.0.0.0":
+    # upload tarFile to shared directory
+    if buildString != "0.0.0.0":
+        with open(tarFileName + ".tar.gz", "rb") as f:
             dbManager = DBManager.DBManager(databaseName="robos")
             dbManager.openCollection("buildscripts")
             dbManager.insert(
@@ -42,6 +43,6 @@ if __name__ == "__main__":
                     "minor_version": os.environ["MINOR_VER"] if os.environ.get("MINOR_VER") is not None else 0,
                     "patch": os.environ["PATCH"] if os.environ.get("PATCH") is not None else 0,
                     "build_num": os.environ["BUILD_NUMBER"] if os.environ.get("BUILD_NUMBER") is not None else 0,
-                    "package": tarFile.read(),
+                    "package": f.read(),
                 },
                 insertOne=True)
