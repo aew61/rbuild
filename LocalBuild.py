@@ -43,6 +43,6 @@ if __name__ == "__main__":
                     "minor_version": os.environ["MINOR_VER"] if os.environ.get("MINOR_VER") is not None else 0,
                     "patch": os.environ["PATCH"] if os.environ.get("PATCH") is not None else 0,
                     "build_num": os.environ["BUILD_NUMBER"] if os.environ.get("BUILD_NUMBER") is not None else 0,
-                    "package": f.read(),
+                    "package": str(f.read()),
                 },
                 insertOne=True)
