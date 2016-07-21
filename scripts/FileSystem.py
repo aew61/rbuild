@@ -33,9 +33,11 @@ LOG_DIR = 14                # the absolute path to the directory where all log f
 # will move these (project) libraries into the currently building project's
 # workspace for linking.
 DEPENDENCIES = 15
-IDE_ROOT = 16
-CLIENT_ROOT = 17
-CLIENT_CONFIG = 18
+BUILD_DEPENDENCIES = 16
+PACKAGE = 17
+IDE_ROOT = 18
+CLIENT_ROOT = 19
+CLIENT_CONFIG = 20
 
 
 # a method to get the absolute path to a directory within the project based
@@ -71,6 +73,10 @@ def getDirectory(directoryEnum, configuration='', projectName=''):
         return os.path.join(getDirectory(WORKING, configuration, projectName), 'logs')
     elif directoryEnum == DEPENDENCIES:
         return os.path.join(getDirectory(ROOT), "dependencies")
+    elif directoryEnum == BUILD_DEPENDENCIES:
+        return os.path.join(getDirectory(WORKING, configuration, projectName), "dependencies")
+    elif directoryEnum == PACKAGE:
+        return os.path.join(getDirectory(WORKING, configuration, projectName), "package")
     elif directoryEnum == IDE_ROOT:
         return os.path.join(getDirectory(OUT_ROOT, configuration, projectName), "IDE")
     elif directoryEnum == CLIENT_ROOT:

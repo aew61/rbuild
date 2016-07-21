@@ -1,6 +1,6 @@
 # SYSTEM IMPORTS
 import os
-import platform
+# import platform
 # import shutil
 import sys
 import tarfile
@@ -10,6 +10,7 @@ currentDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(currentDir, "scripts"))  # now we can import modules from <currentDirectory>/scripts
 # PYTHON PROJECT IMPORTS
 import Utilities
+import DBManager
 
 
 if __name__ == "__main__":
@@ -32,5 +33,15 @@ if __name__ == "__main__":
 
         # upload tarFile to shared directory
         if buildString != "0.0.0.0":
-            share = os.path.join(os.environ["SHARE_PATH"], os.environ["JOB_NAME"], tarFileName)
-            Utilities.copyTree(tarFileName, share)
+            dbManager = DBManager(databaseName="robos")
+            dbManager.openCollection("buildscripts")
+            dbManager.insert(
+                {
+                    "fileName": "buildscripts",
+                    "major_version": os.environ["MAJOR_VER"] if os.environ.get("MAJOR_VER") is not None else 0,
+                    "minor_version": os.environ["MINOR_VER"] if os.environ.get("MINOR_VER") is not None else 0,
+                    "patch": os.environ["PATCH"] if os.environ.get("PATCH") is not None else 0,
+                    "build_num": os.environ["BUILD_NUMBER"] if os.environ.get("BUILD_NUMBER") is not None else 0,
+                    "package": tarFile.read(),
+                },
+                insertOne=True)

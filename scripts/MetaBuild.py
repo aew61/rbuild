@@ -2,11 +2,13 @@
 # SYSTEM IMPORTS
 import os
 import platform
+import tarfile
 # import _winreg
 
 # PYTHON PROJECT IMPORTS
 import Utilities
 import FileSystem
+import DBManager
 
 
 # the parent class of the build process. It contains methods common to all build processes as well
@@ -20,6 +22,7 @@ class MetaBuild(object):
         self._project_build_number = "0.0.0.0"  # major.minor.patch.build
         self._configurations = ["debug", "release"]
         self._build_directory = FileSystem.getDirectory(FileSystem.WORKING)
+        self._dbManager = DBManager(databaseName=self._project_namespace.lower())
 
     # removes previous builds so that this build
     # is a fresh build (on this machine). This
@@ -41,10 +44,10 @@ class MetaBuild(object):
             splitLine = None
             for line in file:
                 splitLine = line.strip().split(None)
-                if len(splitLine) == 0 or splitLine[0] == '#':
+                if len(splitLine) == 0 or line.startswith('#'):
                     continue
-                elif len(splitLine) == 4:
-                    requiredProjects.append((splitLine))
+                elif len(splitLine) == 1:
+                    requiredProjects.append(splitLine)
                 else:
                     Utilities.failExecution("Parse error in dependency file [%s] at line [%s]"
                                             % (dependencyFilePath, lineNum))
@@ -52,9 +55,52 @@ class MetaBuild(object):
         print("Required projects for project [%s] are %s" % (self._project_name, requiredProjects))
         return requiredProjects
 
-    def loadDependencies(requiredProjects):
-        # connect to server
-        pass
+    def findDependencyVersions(self, requiredProjects, pathToDependencies):
+        projectRecords = []
+        for project in requiredProjects:
+            self._dbManager.openCollection(project[0].lower())
+            # find correct configuration and version
+            projectRecords.append(self._dbManager.query(
+                {
+                    "config": self._config.lower(),
+                },
+                sortScheme=["build_num"]
+            )[-1])
+        return projectRecords
+
+    def loadDependencies(self, requiredProjects):
+        sharePath = os.environ.get("SHARE_PATH")
+        if sharePath is None:
+            Utilities.failExecution("Could not load dependencies. SHARE_PATH env var not set")
+        dbRecords = self.findDependencyVersions(requiredProjects, sharePath)
+        buildDepPath = FileSystem.getDirectory(FileSystem.BUILD_DEPENDENCIES, self._config, self._project_name)
+        binDir = os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT,
+                                                      self._config, self._project_name), "bin")
+        libDir = os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT,
+                                                      self._config, self._project_name), "lib")
+        outIncludeDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT,
+                                                             self._config, self._project_name), "include")
+        if not os.path.exists(binDir):
+            Utilities.mkdir(binDir)
+        if not os.path.exists(libDir):
+            Utilities.mkdir(libDir)
+        if not os.path.exists(outIncludeDir):
+            Utilities.mkdir(outIncludeDir)
+        for record in dbRecords:
+            # load the project
+            with (os.path.join(buildDepPath, record["filename"] + ".tar.gz"), "w") as f:
+                f.write(record["package"])
+            # open the tar.gz file
+            with tarfile.open(os.path.join(buildDepPath, record["filename"] + ".tar.gz"), "r:gz") as tarFile:
+                tarFile.extractAll(buildDepPath)
+
+            # copy to appropriate directories
+            for file in os.listDir(os.path.join(buildDepPath, record["filename"], "include")):
+                Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "include", file), outIncludeDir)
+            for file in os.listDir(os.path.join(buildDepPath, record["filename"], "bin")):
+                Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "bin", file), binDir)
+            for file in os.listDir(os.path.join(buildDepPath, record["filename"], "lib")):
+                Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "lib", file), libDir)
 
     def setupWorkspace(self):
         print("Setting up workspaces for project [%s]" % self._project_name)
@@ -75,7 +121,7 @@ class MetaBuild(object):
                        "#define VERSION_H\n\n"
                        "#define VERSION       " + self._project_build_number + "\n"
                        "#define VERSION_STR  \"" + self._project_build_number + "\"\n\n"
-                       "#endif  // VERSION_H\n\n")
+                       "#endif  // end of VERSION_H\n\n")
 
     def checkConfigArgsAndFormat(self, offset, configArgs):
         formattedHeader = ""
@@ -101,6 +147,8 @@ class MetaBuild(object):
 
         return formattedHeader, formattedSrc
 
+    # MOVE THESE METHODS TO LocalBuild.py FOR EACH PROJECT THAT REQUIRES IT
+    # --------------------------------------------------------------------
     def generateConfig(self, asyncConfigPath=None, asyncConfigFileName=None):
         outIncludeDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT),
                                      "include")
@@ -155,8 +203,8 @@ class MetaBuild(object):
     def preBuild(self, asyncConfigPath=None, asyncConfigFileName=None):
         self.setupWorkspace()
         self.generateProjectVersion()
-        if self._project_name != "Logging":
-            self.generateConfig(asyncConfigPath, asyncConfigFileName)
+        self.generateConfig(asyncConfigPath, asyncConfigFileName)
+    # --------------------------------------------------------------------------
 
     def getCMakeArgs(self, pathPrefix, workingDirectory, test, logging, python):
         CMakeProjectDir = "projects"
@@ -173,12 +221,12 @@ class MetaBuild(object):
         # to place the appropriate build components in the correct
         # directories.
         binDir = os.path.relpath(
-            os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config, self._project_name), "bin"),
+            os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name), "bin"),
             dummyDir
         )
 
         libDir = os.path.relpath(
-            os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config, self._project_name), "lib"),
+            os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name), "lib"),
             dummyDir
         )
         outIncludeDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name),
@@ -241,6 +289,31 @@ class MetaBuild(object):
     # a gzipped tarball (tar.gz) file.
     def package(self):
         print("packaging project [%s]" % self._project_name)
+        packageDir = FileSystem.getDirectory(FileSystem.PACKAGE,
+                                             configuration=self._config,
+                                             projectName=self._project_name)
+        builtDirName = self._project_name + "_" + self._project_build_number + "_" + self._config.lower()
+        if os.path.exists(packageDir, builtDirName):
+            Utilities.rmTree(builtDirName)
+        Utilities.mkdir(os.path.join(packageDir, builtDirName))
+        outRoot = FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name)
+        for outDir in os.listDir(outRoot):
+            Utilities.copyTree(os.path.join(outRoot, outDir), os.path.join(packageDir, builtDirName))
+        with tarfile.open(os.path.join(packageDir, builtDirName + ".tar.gz"),
+                          "w:gz") as tarFile:
+            tarFile.add(os.path.join(packageDir, builtDirName))
+            self._dbManager.openCollection(self._project_name.lower())
+            self._dbManager.insert(
+                {
+                    "fileName": self._project_name,
+                    "major_version": os.environ["MAJOR_VER"] if os.environ.get("MAJOR_VER") is not None else 0,
+                    "minor_version": os.environ["MINOR_VER"] if os.environ.get("MINOR_VER") is not None else 0,
+                    "patch": os.environ["PATCH"] if os.environ.get("PATCH") is not None else 0,
+                    "build_num": os.environ["BUILD_NUMBER"] if os.environ.get("BUILD_NUMBER") is not None else 0,
+                    "config": self._config.lower(),
+                    "package": tarFile.read(),
+                },
+                insertOne=True)
 
     def runUnitTests(self, iterations=1, test="OFF", valgrind="OFF"):
         print("Running unit tests for project [%s]" % self._project_name)
@@ -269,15 +342,10 @@ class MetaBuild(object):
     # executes a particular part of the build process and fails the build
     # if that build step fails.
     def executeStep(self, buildStep):
-        if hasattr(self, buildStep):
-            print("-Executing build step [%s]" % buildStep)
-            method = getattr(self, buildStep)
-            success = Utilities.call(method, self._custom_args)
-            if not success:
-                Utilities.failExecution("Build step [%s] failed" % buildStep)
-        else:
-            Utilities.failExecution("Project %s does not have build step [%s]" %
-                                    (self._project_name, buildStep))
+        print("-Executing build step [%s]" % buildStep)
+        success = Utilities.call(buildStep, self._custom_args)
+        if not success:
+            Utilities.failExecution("Build step [%s] failed" % buildStep)
 
     # executes all build steps
     def executeBuildSteps(self, buildSteps):
