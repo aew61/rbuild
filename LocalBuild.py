@@ -26,7 +26,7 @@ if __name__ == "__main__":
                                    os.environ["BUILD_NUMBER"] if os.environ.get("BUILD_NUMBER") is not None else 0)
     tarFileName = "BuildScripts_%s_src.tar.gz" % buildString
     # bundle all directories and files into a tar.gz file and upload to share
-    with tarfile.open(tarFileName, "w:gz") as tarFile:
+    with tarfile.open(tarFileName, "w:gz", encoding='utf-8') as tarFile:
         for item in os.listdir(currentDir):
             if item != "LocalBuild.py" and "readme" not in item.lower() and not item.startswith("."):
                 tarFile.add(item)
