@@ -23,7 +23,7 @@ if __name__ == "__main__":
                                    os.environ["MINOR_VER"] if os.environ.get("MINOR_VER") is not None else 0,
                                    os.environ["PATCH"] if os.environ.get("PATCH") is not None else 0,
                                    os.environ["BUILD_NUMBER"] if os.environ.get("BUILD_NUMBER") is not None else 0)
-    tarFileName = "BuildScripts_%s_src.tar" % buildString
+    tarFileName = "BuildScripts_%s_src.tar.gz" % buildString
     # bundle all directories and files into a tar.gz file and upload to share
     with tarfile.open(tarFileName, "w:gz") as tarFile:
         print("currentDir: %s" % currentDir)
