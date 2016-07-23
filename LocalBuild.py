@@ -106,7 +106,7 @@ if __name__ == "__main__":
         # try to post file to file server
         with open(tarFileName, "rb") as fileToUpload:
             response = requests.post(os.environ["FILESERVER_URI"] + "BuildScripts_dev/",
-                                     files={tarFileName, fileToUpload})
+                                     files={tarFileName: fileToUpload})
             if response.status_code != 200:
                 failExecution("Error %s uploading %s to %s" % (response.status_code,
                                                                tarFileName,
