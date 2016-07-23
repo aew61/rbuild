@@ -1,6 +1,7 @@
 # SYSTEM IMPORTS
 import os
 # import platform
+import requests
 import shutil
 import subprocess
 import sys
@@ -100,4 +101,13 @@ if __name__ == "__main__":
     # upload tarFile to shared directory
     if buildString != "0.0.0.0":
         # upload
-        copyTree(tarFileName, os.path.join(os.environ["SHARE_PATH"], "BuildScripts_dev"))
+        # copyTree(tarFileName, os.path.join(os.environ["SHARE_PATH"], "BuildScripts_dev"))
+
+        # try to post file to file server
+        with open(tarFileName, "rb") as fileToUpload:
+            response = requests.post(os.environ["FILESERVER_URI"] + "BuildScripts_dev/",
+                                     files={tarFileName, fileToUpload})
+            if response.status_code != 200:
+                failExecution("Error %s uploading %s to %s" % (response.status_code,
+                                                               tarFileName,
+                                                               os.environ["FILESERVER_URI"] + "BuildScripts_dev/"))
