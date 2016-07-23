@@ -39,4 +39,4 @@ if __name__ == "__main__":
     # upload tarFile to shared directory
     if buildString != "0.0.0.0":
         # upload
-        Utilities.copyTree(tarFileName, os.environ["SHARE_PATH"])
+        Utilities.copyTree(tarFileName, os.path.join(os.environ["SHARE_PATH"], "BuildScripts_dev"))
