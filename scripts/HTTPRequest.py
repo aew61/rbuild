@@ -5,9 +5,9 @@ import requests
 # PYTHON PROJECT IMPORTS
 
 
-
 def urljoin(url, *urls):
     return '/'.join(url, *urls)
+
 
 class HTTPRequest(object):
     def __init__(self, url):
@@ -25,3 +25,4 @@ class HTTPRequest(object):
         response = requests.post(urljoin(self.url, 'post'), {fileName: open(fullFilePath, 'rb')})
 
         # handle response
+        print(response.status_code)
