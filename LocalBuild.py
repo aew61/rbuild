@@ -15,7 +15,9 @@ sys.path.append(os.path.join(currentDir, "scripts"))  # now we can import module
 
 
 def urljoin(url, *urls):
-    unrefinedUrl = '/'.join([url, urls]).strip()
+    urlList = [url]
+    urlList.extend([urlPart for urlPart in urls])
+    unrefinedUrl = '/'.join(urlList).strip()
     return unrefinedUrl.replace("//", "/")
 
 
