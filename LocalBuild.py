@@ -18,7 +18,8 @@ def urljoin(url, *urls):
     urlList = [url]
     urlList.extend([urlPart for urlPart in urls])
     unrefinedUrl = '/'.join(urlList).strip()
-    return unrefinedUrl.replace("//", "/")
+    unrefinedUrl = unrefinedUrl.replace("//", "/")
+    return unrefinedUrl.replace("http:/", "http://")
 
 
 def failExecution(errorMsg):
@@ -114,6 +115,6 @@ if __name__ == "__main__":
         response = requests.post(urljoin(os.environ["FILESERVER_URI"], "BuildScripts_dev/"),
                                  files={"upload_file": open(tarFileName, "rb")})
         if response.status_code != 200:
-           failExecution("Error %s uploading %s to %s" % (response.status_code,
-                                                          tarFileName,
-                                                          os.environ["FILESERVER_URI"] + "BuildScripts_dev/"))
+            failExecution("Error %s uploading %s to %s" % (response.status_code,
+                                                           tarFileName,
+                                                           os.environ["FILESERVER_URI"] + "BuildScripts_dev/"))

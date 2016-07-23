@@ -10,7 +10,8 @@ def urljoin(url, *urls):
     urlList = [url]
     urlList.extend([urlPart for urlPart in urls])
     unrefinedUrl = '/'.join(urlList).strip()
-    return unrefinedUrl.replace("//", "/")
+    unrefinedUrl = unrefinedUrl.replace("//", "/")
+    return unrefinedUrl.replace("http:/", "http://")
 
 
 class HTTPRequest(object):
