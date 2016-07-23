@@ -7,7 +7,7 @@ import Utilities
 
 
 def urljoin(url, *urls):
-    unrefinedUrl = '/'.join(url, *urls).strip()
+    unrefinedUrl = '/'.join([url, *urls]).strip()
     return unrefinedUrl.replace("//", "/")
 
 
