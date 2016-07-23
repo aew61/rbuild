@@ -7,7 +7,8 @@ import Utilities
 
 
 def urljoin(url, *urls):
-    return '/'.join(url, *urls)
+    unrefinedUrl = '/'.join(url, *urls).strip()
+    return unrefinedUrl.replace("//", "/")
 
 
 class HTTPRequest(object):
@@ -45,7 +46,7 @@ class HTTPRequest(object):
             url = urljoin(self.baseUrl, *urlParams)
 
         # to post, do I have to add "/post" to the end of the url?
-        response = requests.post(url, {fileName: open(fullFilePath, 'rb')})
+        response = requests.post(url, {"upload_file": open(fullFilePath, 'rb')})
 
         # handle response
         if response.status_code != 200:

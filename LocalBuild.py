@@ -14,6 +14,11 @@ sys.path.append(os.path.join(currentDir, "scripts"))  # now we can import module
 # PYTHON PROJECT IMPORTS
 
 
+def urljoin(url, *urls):
+    unrefinedUrl = '/'.join(url, *urls).strip()
+    return unrefinedUrl.replace("//", "/")
+
+
 def failExecution(errorMsg):
     print("Failed Build Stack:")
     traceback.print_stack(file=sys.stdout)
@@ -104,10 +109,9 @@ if __name__ == "__main__":
         # copyTree(tarFileName, os.path.join(os.environ["SHARE_PATH"], "BuildScripts_dev"))
 
         # try to post file to file server
-        with open(tarFileName, "rb") as fileToUpload:
-            response = requests.post(os.environ["FILESERVER_URI"] + "BuildScripts_dev/",
-                                     files={tarFileName: fileToUpload})
-            if response.status_code != 200:
-                failExecution("Error %s uploading %s to %s" % (response.status_code,
-                                                               tarFileName,
-                                                               os.environ["FILESERVER_URI"] + "BuildScripts_dev/"))
+        response = requests.post(urljoin(os.environ["FILESERVER_URI"], "BuildScripts_dev/"),
+                                 files={"upload_file": open(tarFileName, "rb")})
+        if response.status_code != 200:
+           failExecution("Error %s uploading %s to %s" % (response.status_code,
+                                                          tarFileName,
+                                                          os.environ["FILESERVER_URI"] + "BuildScripts_dev/"))
