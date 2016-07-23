@@ -26,15 +26,15 @@ if __name__ == "__main__":
     tarFileName = "BuildScripts_%s_src.tar.gz" % buildString
     # bundle all directories and files into a tar.gz file and upload to share
     with tarfile.open(tarFileName, "w:gz") as tarFile:
-        print("currentDir: %s" % currentDir)
+    #     print("currentDir: %s" % currentDir)
         for item in os.listdir(currentDir):
-            print("\titem in %s" % item)
+    #         print("\titem in %s" % item)
             if item != "LocalBuild.py" and "readme" not in item.lower() and not item.startswith("."):
                 tarFile.add(item)
 
-    with tarfile.open(tarFileName, "r:gz") as tarFile:
-        for file in tarFile:
-            print("entry in tarFile: %s" % file)
+    # with tarfile.open(tarFileName, "r:gz") as tarFile:
+    #     for file in tarFile:
+    #         print("entry in tarFile: %s" % file)
 
     # upload tarFile to shared directory
     if buildString != "0.0.0.0":
