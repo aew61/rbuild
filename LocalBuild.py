@@ -1,6 +1,7 @@
 # SYSTEM IMPORTS
 import os
 # import platform
+import pymongo
 import requests
 import shutil
 import subprocess
@@ -93,27 +94,34 @@ if __name__ == "__main__":
                                    os.environ["MINOR_VER"] if os.environ.get("MINOR_VER") is not None else 0,
                                    os.environ["PATCH"] if os.environ.get("PATCH") is not None else 0,
                                    os.environ["BUILD_NUMBER"] if os.environ.get("BUILD_NUMBER") is not None else 0)
-    tarFileName = "BuildScripts_%s_src.tar.gz" % buildString
+    tarFileName = "BuildScripts_%s_src" % buildString
     # bundle all directories and files into a tar.gz file and upload to share
-    with tarfile.open(tarFileName, "w:gz") as tarFile:
-        # print("currentDir: %s" % currentDir)
+    with tarfile.open(tarFileName + ".tar.gz", "w:gz") as tarFile:
         for item in os.listdir(currentDir):
-            # print("\titem in %s" % item)
             if item != "LocalBuild.py" and "readme" not in item.lower() and not item.startswith("."):
                 tarFile.add(item)
 
-    # with tarfile.open(tarFileName, "r:gz") as tarFile:
-    #     for file in tarFile:
-    #         print("entry in tarFile: %s" % file)
-
     # upload tarFile to shared directory
     if buildString != "0.0.0.0":
-        # upload
-        # copyTree(tarFileName, os.path.join(os.environ["SHARE_PATH"], "BuildScripts_dev"))
+        productNumbers = [int(x) for x in buildString.split(".")]
+        # upload to database
+        client = pymongo.MongoClient(os.environ["MONGODB_URI"])
+        db = client["BuildScripts"]
+        collection = db["src"]
+        collection.insert_one(
+            {
+                "fileName": tarFileName,
+                "filetype": ".tar.gz",
+                "major_version": productNumbers[0],
+                "minor_version": productNumbers[1],
+                "patch": productNumbers[2],
+                "build_num": productNumbers[3],
+                "config": "src",
+            })
 
         # try to post file to file server
         response = requests.post(urljoin(os.environ["FILESERVER_URI"], "BuildScripts_dev/"),
-                                 files={"upload_file": open(tarFileName, "rb")})
+                                 files={"upload_file": open(tarFileName + ".tar.gz", "rb")})
         if response.status_code != 200:
             failExecution("Error %s uploading %s to %s" % (response.status_code,
                                                            tarFileName,

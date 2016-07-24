@@ -9,6 +9,7 @@ import tarfile
 import Utilities
 import FileSystem
 import DBManager
+import HTTPRequest
 
 
 # the parent class of the build process. It contains methods common to all build processes as well
@@ -19,10 +20,21 @@ class MetaBuild(object):
         self._project_namespace = ""
         self._source_dirs = ["cpp"]
         self._build_steps = []
-        self._project_build_number = "0.0.0.0"  # major.minor.patch.build
+        self._project_build_number = "%s.%s.%s.%s" % (
+            os.environ["MAJOR_VER"] if os.environ.get("MAJOR_VER") is not None else 0,
+            os.environ["MINOR_VER"] if os.environ.get("MINOR_VER") is not None else 0,
+            os.environ["PATCH"] if os.environ.get("PATCH") is not None else 0,
+            os.environ["BUILD_NUMBER"] if os.environ.get("BUILD_NUMBER") is not None else 0
+        )  # major.minor.patch.build
         self._configurations = ["debug", "release"]
         self._build_directory = FileSystem.getDirectory(FileSystem.WORKING)
-        self._dbManager = DBManager(databaseName=self._project_namespace.lower())
+
+        if os.environ.get("MONGODB_URI") is None:
+            Utilities.failExecution("MONGODB_URI env var not set. Cannot download dependencies")
+        if os.environ.get("FILESERVER_URI") is None:
+            Utilities.failExecution("FILESERVER_URI env var not set. Cannot download dependencies")
+        self._dbManager = DBManager.DBManager(databaseName=self._project_namespace.lower())
+        self._httpRequest = HTTPRequest.HTTPRequest(os.environ["FILESERVER_URI"])
 
     # removes previous builds so that this build
     # is a fresh build (on this machine). This
@@ -55,24 +67,21 @@ class MetaBuild(object):
         print("Required projects for project [%s] are %s" % (self._project_name, requiredProjects))
         return requiredProjects
 
-    def findDependencyVersions(self, requiredProjects, pathToDependencies):
+    def findDependencyVersions(self, requiredProjects):
         projectRecords = []
         for project in requiredProjects:
             self._dbManager.openCollection(project[0].lower())
             # find correct configuration and version
-            projectRecords.append(self._dbManager.query(
+            projectRecords.append([project[0], self._dbManager.query(
                 {
                     "config": self._config.lower(),
                 },
                 sortScheme=["build_num"]
-            )[-1])
+            )[-1]])
         return projectRecords
 
     def loadDependencies(self, requiredProjects):
-        sharePath = os.environ.get("SHARE_PATH")
-        if sharePath is None:
-            Utilities.failExecution("Could not load dependencies. SHARE_PATH env var not set")
-        dbRecords = self.findDependencyVersions(requiredProjects, sharePath)
+        dbRecords = self.findDependencyVersions(requiredProjects)
         buildDepPath = FileSystem.getDirectory(FileSystem.BUILD_DEPENDENCIES, self._config, self._project_name)
         binDir = os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT,
                                                       self._config, self._project_name), "bin")
@@ -86,12 +95,14 @@ class MetaBuild(object):
             Utilities.mkdir(libDir)
         if not os.path.exists(outIncludeDir):
             Utilities.mkdir(outIncludeDir)
-        for record in dbRecords:
+
+        for project, record in dbRecords:
             # load the project
-            with (os.path.join(buildDepPath, record["filename"] + ".tar.gz"), "w") as f:
-                f.write(record["package"])
+            self._httpRequest.download(os.path.join(buildDepPath, record["filename"] + record["filetype"]),
+                                       urlParams=[project, self._config.lower(),
+                                                  record["filename"] + record["filetype"]])
             # open the tar.gz file
-            with tarfile.open(os.path.join(buildDepPath, record["filename"] + ".tar.gz"), "r:gz") as tarFile:
+            with tarfile.open(os.path.join(buildDepPath, record["filename"] + record["filetype"]), "r:gz") as tarFile:
                 tarFile.extractAll(buildDepPath)
 
             # copy to appropriate directories
@@ -292,28 +303,34 @@ class MetaBuild(object):
         packageDir = FileSystem.getDirectory(FileSystem.PACKAGE,
                                              configuration=self._config,
                                              projectName=self._project_name)
-        builtDirName = self._project_name + "_" + self._project_build_number + "_" + self._config.lower()
-        if os.path.exists(packageDir, builtDirName):
-            Utilities.rmTree(builtDirName)
-        Utilities.mkdir(os.path.join(packageDir, builtDirName))
+        packageFileName = self._project_name + "_" + self._project_build_number +\
+            "_" + self._config.lower()
+        if os.path.exists(packageDir):
+            Utilities.rmTree(packageDir)
+        Utilities.mkdir(packageDir, packageFileName)
         outRoot = FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name)
         for outDir in os.listDir(outRoot):
-            Utilities.copyTree(os.path.join(outRoot, outDir), os.path.join(packageDir, builtDirName))
-        with tarfile.open(os.path.join(packageDir, builtDirName + ".tar.gz"),
+            Utilities.copyTree(os.path.join(outRoot, outDir), os.path.join(packageDir, packageFileName))
+
+        productNumbers = [int(x) for x in self._project_build_number.split(".")]
+        with tarfile.open(os.path.join(packageDir, packageFileName + ".tar.gz"),
                           "w:gz") as tarFile:
-            tarFile.add(os.path.join(packageDir, builtDirName))
+            tarFile.add(os.path.join(packageDir, packageFileName))
             self._dbManager.openCollection(self._project_name.lower())
             self._dbManager.insert(
                 {
-                    "fileName": self._project_name,
-                    "major_version": os.environ["MAJOR_VER"] if os.environ.get("MAJOR_VER") is not None else 0,
-                    "minor_version": os.environ["MINOR_VER"] if os.environ.get("MINOR_VER") is not None else 0,
-                    "patch": os.environ["PATCH"] if os.environ.get("PATCH") is not None else 0,
-                    "build_num": os.environ["BUILD_NUMBER"] if os.environ.get("BUILD_NUMBER") is not None else 0,
+                    "fileName": packageFileName,
+                    "filetype": ".tar.gz",
+                    "major_version": productNumbers[0],
+                    "minor_version": productNumbers[1],
+                    "patch": productNumbers[2],
+                    "build_num": productNumbers[3],
                     "config": self._config.lower(),
-                    "package": tarFile.read(),
                 },
                 insertOne=True)
+        self._httpRequest.upload(packageDir,
+                                 fileName=packageFileName + ".tar.gz",
+                                 urlParams=[os.environ["JOB_NAME"], self.config.lower()])
 
     def runUnitTests(self, iterations=1, test="OFF", valgrind="OFF"):
         print("Running unit tests for project [%s]" % self._project_name)
