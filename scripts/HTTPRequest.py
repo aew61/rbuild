@@ -49,7 +49,7 @@ class HTTPRequest(object):
             url = urljoin(self.baseUrl, *urlParams)
 
         # to post, do I have to add "/post" to the end of the url?
-        response = requests.post(url, {"upload_file": open(fullFilePath, 'rb')})
+        response = requests.post(url, files={"upload_file": open(fullFilePath, 'rb')})
 
         # handle response
         if response.status_code != 200:
