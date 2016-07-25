@@ -131,7 +131,7 @@ def formatVisualStudioVersion(visualStudioVersion=14):
 
 
 def getMachineBits():
-    if "64" in getProcessorInfo()[0]:
+    if 64 == getProcessorInfo()[0]:
         return "x64"
     else:
         return "x86"
