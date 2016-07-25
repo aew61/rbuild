@@ -246,14 +246,16 @@ class MetaBuild(object):
             "_" + self._config.lower()
         if os.path.exists(packageDir):
             Utilities.rmTree(packageDir)
-        Utilities.mkdir(packageDir, packageFileName)
+        Utilities.mkdir(os.path.join(packageDir, packageFileName))
         outRoot = FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config)
-        for outDir in os.listDir(outRoot):
-            Utilities.copyTree(os.path.join(outRoot, outDir), os.path.join(packageDir, packageFileName))
+        for outDir in os.listdir(outRoot):
+            Utilities.copyTree(os.path.join(outRoot, outDir), os.path.join(packageDir, packageFileName, outDir))
+        Utilities.copyTree(FileSystem.getDirectory(FileSystem.CMAKE_BASE_DIR),
+                           os.path.join(packageDir, packageFileName, "cmake"))
 
         with tarfile.open(os.path.join(packageDir, packageFileName + ".tar.gz"),
                           "w:gz") as tarFile:
-            tarFile.add(os.path.join(packageDir, packageFileName))
+            tarFile.add(os.path.join(packageDir, packageFileName), arcname=packageFileName)
 
     def runUnitTests(self, iterations=1, test="OFF", valgrind="OFF"):
         print("Running unit tests for project [%s]" % self._project_name)

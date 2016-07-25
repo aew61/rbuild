@@ -82,29 +82,30 @@ class ProjectBuild(MetaBuild):
                                 self.cmake, self.make])
 
     def uploadPackagedVersion(self):
-        print("Uploading project [%s]" % self._project_name)
-        packageDir = FileSystem.getDirectory(FileSystem.PACKAGE,
-                                             configuration=self._config,
-                                             projectName=self._project_name)
-        packageFileName = self._project_name + "_" + self._project_build_number +\
-            "_" + self._config.lower()
-        productNumbers = [int(x) for x in self._project_build_number.split(".")]
+        if self._project_build_number != "0.0.0.0":
+            print("Uploading project [%s]" % self._project_name)
+            packageDir = FileSystem.getDirectory(FileSystem.PACKAGE,
+                                                 configuration=self._config,
+                                                 projectName=self._project_name)
+            packageFileName = self._project_name + "_" + self._project_build_number +\
+                "_" + self._config.lower()
+            productNumbers = [int(x) for x in self._project_build_number.split(".")]
 
-        self._dbManager.openCollection(self._project_name.lower())
-        self._dbManager.insert(
-            {
-                "fileName": packageFileName,
-                "filetype": ".tar.gz",
-                "major_version": productNumbers[0],
-                "minor_version": productNumbers[1],
-                "patch": productNumbers[2],
-                "build_num": productNumbers[3],
-                "config": self._config.lower(),
-            },
-            insertOne=True)
-        self._httpRequest.upload(packageDir,
-                                 fileName=packageFileName + ".tar.gz",
-                                 urlParams=[os.environ["JOB_NAME"], self.config.lower()])
+            self._dbManager.openCollection(self._project_name.lower())
+            self._dbManager.insert(
+                {
+                    "fileName": packageFileName,
+                    "filetype": ".tar.gz",
+                    "major_version": productNumbers[0],
+                    "minor_version": productNumbers[1],
+                    "patch": productNumbers[2],
+                    "build_num": productNumbers[3],
+                    "config": self._config.lower(),
+                },
+                insertOne=True)
+            self._httpRequest.upload(packageDir,
+                                     fileName=packageFileName + ".tar.gz",
+                                     urlParams=[os.environ["JOB_NAME"], self.config.lower()])
 
     def help(self):
         print("command specific to project [%s]" % self._project_name)

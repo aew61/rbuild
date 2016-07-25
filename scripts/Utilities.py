@@ -80,13 +80,13 @@ def rmTree(path):
 
 def copyTree(srcPath, destPath):
     if os.path.isdir(srcPath):
-        if os.path.isdir(destPath):
-            failExecution("cannot copy directory [%s]: %s exists!" %
-                          (srcPath, destPath))
-        elif os.path.isfile(destPath):
+        if os.path.isfile(destPath):
             failExecution("Cannot copy directory [%s]: %s is a File!" %
                           (srcPath, destPath))
-        shutil.copytree(srcPath, destPath)
+        try:
+            shutil.copytree(srcPath, destPath)
+        except Exception, e:
+            failExecution("Directory [%s] not copied: Error %s" % (srcPath, e))
     else:
         shutil.copy2(srcPath, destPath)  # copy2() copies file metaData
 

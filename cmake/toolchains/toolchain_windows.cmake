@@ -1,5 +1,5 @@
 # x86 config
-if(${BITS} EQUAL "86")
+if( BITS EQUAL "x86" )
     # if( MSVC )
     #     set( SECURITY_FLAGS "/guard /GS /NXCOMPAT /analyze" )
     #     set( SECURITY_LINKER_FLAGS "/SAFESEH /NXCOMPAT /DYNAMICBASE" )
@@ -33,7 +33,7 @@ if(${BITS} EQUAL "86")
 endif()
 
 # x64 config
-if(${BITS} EQUAL "64")
+if( BITS EQUAL "x64" )
     # if( MSVC )
     #     set( SECURITY_FLAGS "/guard /GS /NXCOMPAT /analyze" )
     #     set( SECURITY_LINKER_FLAGS "/SAFESEH /NXCOMPAT /DYNAMICBASE" )
