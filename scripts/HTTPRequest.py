@@ -28,9 +28,19 @@ class HTTPRequest(object):
 
         if response.status_code != 200:
             Utilities.failExecution("Error %s downloading %s" % (response.status_code, url))
+
+        numBytes = len(response.content)
+        currentBytes = 0.0
+        minPercentToPrint = 0
+        print("Starting download (%s bytes):" % numBytes)
         with open(receivingFilePath, ("wb" if readBytes else "w")) as f:
             for chunk in response.iter_content(fileChunkSize):
+                if currentBytes/numBytes >= minPercentToPrint:
+                    print("[%s%%]" % int(currentBytes/numBytes * 100)),
+                    minPercentToPrint += 0.1
                 f.write(chunk)
+                currentBytes += len(chunk)
+        print("Download done")
 
     def upload(self, filePath, fileName="", urlParams=[]):
         fullFilePath = None
