@@ -88,10 +88,10 @@ class ProjectBuild(MetaBuild):
                                                  configuration=self._config,
                                                  projectName=self._project_name)
             packageFileName = self._project_name + "_" + self._project_build_number +\
-                "_" + self._config.lower()
+                "_" + self._config.lower() + "_%s" % platform.system().lower()
             productNumbers = [int(x) for x in self._project_build_number.split(".")]
 
-            self._dbManager.openCollection(self._project_name.lower())
+            self._dbManager.openCollection(self._config.lower())
             self._dbManager.insert(
                 {
                     "fileName": packageFileName,
@@ -101,6 +101,7 @@ class ProjectBuild(MetaBuild):
                     "patch": productNumbers[2],
                     "build_num": productNumbers[3],
                     "config": self._config.lower(),
+                    "OS": platform.system().lower(),
                 },
                 insertOne=True)
             self._httpRequest.upload(packageDir,

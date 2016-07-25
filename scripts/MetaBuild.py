@@ -67,6 +67,7 @@ class MetaBuild(object):
             projectRecords.append([project[0], [x for x in dbManager.query(
                 {
                     "config": self._config.lower(),
+                    "OS": platform.system().lower(),
                 },
                 sortScheme=["build_num"]
             )][-1]])
@@ -243,7 +244,7 @@ class MetaBuild(object):
                                              configuration=self._config,
                                              projectName=self._project_name)
         packageFileName = self._project_name + "_" + self._project_build_number +\
-            "_" + self._config.lower()
+            "_" + self._config.lower() + "_%s" % platform.system().lower()
         if os.path.exists(packageDir):
             Utilities.rmTree(packageDir)
         Utilities.mkdir(os.path.join(packageDir, packageFileName))
