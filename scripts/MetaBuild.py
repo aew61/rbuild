@@ -214,7 +214,7 @@ class MetaBuild(object):
             "-DCMAKE_PREFIX_PATH=%s" % (installRootDir),  # absolute path
             "-DCMAKE_BUILD_TYPE=%s" % cmake_config,
             "-DPROCESSOR=%s" % Utilities.getProcessorInfo()[1],
-            "-DBITS=%s" % Utilities.getMachineBits()
+            "-DBITS=%s" % Utilities.getMachineBits(),
             "-DCMAKE_TOOLCHAIN_FILE=%s" % fullToolchainPath,  # toolchain file path (relative)
             "-DBUILD_%s=ON" % self._project_name.upper(),
             "-DCMAKE_INSTALL_PREFIX=%s" % allBuiltOutDir,  # install root dir
