@@ -280,7 +280,7 @@ class MetaBuild(object):
     # executes a particular part of the build process and fails the build
     # if that build step fails.
     def executeStep(self, buildStep):
-        print("-Executing build step [%s]" % buildStep)
+        print("-Executing build step [%s]" % buildStep.__name__)
         success = Utilities.call(buildStep, self._custom_args)
         if not success:
             Utilities.failExecution("Build step [%s] failed" % buildStep)
