@@ -140,22 +140,20 @@ def getMachineBits():
 def parseCommandLine(commandLine):
     parsedCommandedValues = {}
     parsedCommandedMethods = []
-    key = None
-    projectFlag = False
     for command in commandLine:
-        if command == "-projects":
-            key = command.replace('-', '', 1)
-            parsedCommandedValues[key] = []
-            projectFlag = True
-        elif '-' in command:
-            key = command.replace('-', '', 1)
-            projectFlag = False
-        elif key is not None:
-            if projectFlag is True:
-                parsedCommandedValues[key].append(command)
+        if '-' in command:
+            commandVariable = command.replace('-', '', 1).split("=")
+            if len(commandVariable) == 2:
+                # parse list if necessary using:
+                # listArgs = commandVariable[1].split(",")
+                # if len(listArgs) > 1:
+                    # we have a list
+                # else
+                parsedCommandedValues[commandVariable[0]] = commandVariable[1]
+            elif len(commandVariable) == 1:
+                parsedCommandedValues[commandVariable[0]] = True
             else:
-                parsedCommandedValues[key] = command
-                key = None
+                failExecution("Unknown command: [%s]" % command)
         else:
             parsedCommandedMethods.append(command)
     return (parsedCommandedMethods, parsedCommandedValues)

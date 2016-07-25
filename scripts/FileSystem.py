@@ -36,8 +36,6 @@ DEPENDENCIES = 15
 BUILD_DEPENDENCIES = 16
 PACKAGE = 17
 IDE_ROOT = 18
-CLIENT_ROOT = 19
-CLIENT_CONFIG = 20
 
 
 # a method to get the absolute path to a directory within the project based
@@ -52,7 +50,7 @@ def getDirectory(directoryEnum, configuration='', projectName=''):
     elif directoryEnum == TOP_LEVEL_BUILD_FILES:
         return os.path.join(getDirectory(ROOT), 'projects')
     elif directoryEnum == MANUAL_DIR:
-        return os.path.join(getDirectory(ROOT), 'manual')
+        return os.path.join(getDirectory(TOP_LEVEL_BUILD_FILES), 'manual')
     elif directoryEnum == CPP_SOURCE_DIR:
         return os.path.join(getDirectory(ROOT), 'cpp')
     elif directoryEnum == TEST_REPORT_DIR:
@@ -72,16 +70,12 @@ def getDirectory(directoryEnum, configuration='', projectName=''):
     elif directoryEnum == LOG_DIR:
         return os.path.join(getDirectory(WORKING, configuration, projectName), 'logs')
     elif directoryEnum == DEPENDENCIES:
-        return os.path.join(getDirectory(ROOT), "dependencies")
+        return os.path.join(getDirectory(TOP_LEVEL_BUILD_FILES), "dependencies")
     elif directoryEnum == BUILD_DEPENDENCIES:
         return os.path.join(getDirectory(WORKING, configuration, projectName), "dependencies")
     elif directoryEnum == PACKAGE:
         return os.path.join(getDirectory(WORKING, configuration, projectName), "package")
     elif directoryEnum == IDE_ROOT:
         return os.path.join(getDirectory(OUT_ROOT, configuration, projectName), "IDE")
-    elif directoryEnum == CLIENT_ROOT:
-        return os.path.join(getDirectory(ROOT), "client")
-    elif directoryEnum == CLIENT_CONFIG:
-        return os.path.join(getDirectory(CLIENT_ROOT), "config")
     else:
         Utilities.failExecution("Unknown directoryEnum: [%s]" % directoryEnum)
