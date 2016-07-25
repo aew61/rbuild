@@ -20,8 +20,7 @@ class MetaBuild(object):
         self._project_namespace = ""
         self._source_dirs = ["cpp"]
         self._build_steps = []
-        self._project_build_number = "0.0.0.0"
-        )  # major.minor.patch.build
+        self._project_build_number = "0.0.0.0"  # major.minor.patch.build
         self._configurations = ["debug", "release"]
         self._build_directory = FileSystem.getDirectory(FileSystem.WORKING)
 

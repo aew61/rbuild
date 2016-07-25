@@ -1,5 +1,6 @@
 
 # SYSTEM MODULES
+import os
 import platform
 
 # BUILT IN MODULES
@@ -20,6 +21,7 @@ class ProjectBuild(MetaBuild):
             os.environ["MINOR_VER"] if os.environ.get("MINOR_VER") is not None else 0,
             os.environ["PATCH"] if os.environ.get("PATCH") is not None else 0,
             os.environ["BUILD_NUMBER"] if os.environ.get("BUILD_NUMBER") is not None else 0
+        )
         self._installTarget = True
 
     # this method will launch CMake.
@@ -63,7 +65,7 @@ class ProjectBuild(MetaBuild):
 
     def make(self):
         self.makeTarget(["all"])
-        if self._installTarget):
+        if self._installTarget:
             self.makeTarget(["install"])
 
     def build(self):
@@ -97,8 +99,8 @@ class ProjectBuild(MetaBuild):
                                  urlParams=[os.environ["JOB_NAME"], self.config.lower()])
 
     def help(self):
-        print("command specific to project [%s]" % self._project_name
-        print("     [%s] specific build steps" % self._project_name
+        print("command specific to project [%s]" % self._project_name)
+        print("     [%s] specific build steps" % self._project_name)
         print("         cmake                       generates build files for all C++ source and tests.")
         print("         make                        makes all binaries.")
         print("         build                       runs cmake and make to build all binaries.")
