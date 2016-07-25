@@ -193,10 +193,10 @@ class MetaBuild(object):
 
         fullToolchainPath = None
         if platform.system() == "Windows":
-            fullToolchainPath = os.path.join(toolchainDir, "toolchain_windows_%s.cmake" % Utilities.getMachineBits())
+            fullToolchainPath = os.path.join(toolchainDir, "toolchain_windows.cmake")
             # "x86")
         else:
-            fullToolchainPath = os.path.join(toolchainDir, "toolchain_unix_%s.cmake" % Utilities.getMachineBits())
+            fullToolchainPath = os.path.join(toolchainDir, "toolchain_unix.cmake")
 
         monoPath = os.environ.get("MONO_BASE_PATH").replace("\\", "/") \
             if os.environ.get("MONO_BASE_PATH") is not None else ""
@@ -214,6 +214,7 @@ class MetaBuild(object):
             "-DCMAKE_PREFIX_PATH=%s" % (installRootDir),  # absolute path
             "-DCMAKE_BUILD_TYPE=%s" % cmake_config,
             "-DPROCESSOR=%s" % Utilities.getProcessorInfo()[1],
+            "-DBITS=%s" % Utilities.getMachineBits()
             "-DCMAKE_TOOLCHAIN_FILE=%s" % fullToolchainPath,  # toolchain file path (relative)
             "-DBUILD_%s=ON" % self._project_name.upper(),
             "-DCMAKE_INSTALL_PREFIX=%s" % allBuiltOutDir,  # install root dir
