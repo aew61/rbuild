@@ -4,7 +4,9 @@ import os
 import platform
 
 # BUILT IN MODULES
+import DBManager
 import FileSystem
+import HTTPRequest
 from MetaBuild import MetaBuild
 import Utilities
 

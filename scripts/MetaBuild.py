@@ -9,7 +9,7 @@ import tarfile
 import Utilities
 import FileSystem
 import DBManager
-import HTTPRequest
+# import HTTPRequest
 
 
 # the parent class of the build process. It contains methods common to all build processes as well
