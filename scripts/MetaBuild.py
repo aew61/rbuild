@@ -179,7 +179,9 @@ class MetaBuild(object):
         outIncludeDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name),
                                      "include")
 
-        toolchainDir = os.path.relpath(FileSystem.getDirectory(FileSystem.CMAKE_TOOLCHAIN_DIR), workingDirectory)
+        toolchainDir = os.path.relpath(os.path.join(FileSystem.getDirectory(FileSystem.WORKING),
+                                                    "cmake", "toolchains"),
+                                       workingDirectory)
         allBuiltOutDir = FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config)
         if platform.system() == "Windows":
             installRootDir = "\"%s\"" % installRootDir.replace("\\", "/")
