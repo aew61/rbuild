@@ -120,7 +120,8 @@ def getVisualStudioVersionAndVsVarsAllPath():
     vsCommToolsPath = None
     for version in installedVersions:
         if "VS%s0COMNTOOLS" % version in os.environ:
-            vsCommToolsPath = os.path.abspath(os.path.join(os.environ["VS%s0COMNTOOLS" % version], '..', '..', 'VC', 'vcvarsall.bat'))
+            vsCommToolsPath = os.path.abspath(os.path.join(os.environ["VS%s0COMNTOOLS" % version],
+                                                           '..', '..', 'VC', 'vcvarsall.bat'))
             if os.path.exists(vsCommToolsPath):
                 latestWorkingVersion = version
     return (latestWorkingVersion, vsCommToolsPath)
