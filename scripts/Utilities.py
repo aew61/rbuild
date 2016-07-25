@@ -83,10 +83,12 @@ def copyTree(srcPath, destPath):
         if os.path.isfile(destPath):
             failExecution("Cannot copy directory [%s]: %s is a File!" %
                           (srcPath, destPath))
-        try:
-            shutil.copytree(srcPath, destPath)
-        except Exception, e:
-            failExecution("Directory [%s] not copied: Error %s" % (srcPath, e))
+        if not os.path.exists(destPath):
+            mkdir(destPath)
+        for item in os.listdir(srcPath):
+            s = os.path.join(srcPath, s)
+            d = os.path.join(destPath, d)
+            copyTree(s, d)
     else:
         shutil.copy2(srcPath, destPath)  # copy2() copies file metaData
 

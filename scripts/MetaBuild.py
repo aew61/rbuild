@@ -99,12 +99,12 @@ class MetaBuild(object):
                 tarFile.extractAll(buildDepPath)
 
             # copy to appropriate directories
-            for file in os.listDir(os.path.join(buildDepPath, record["filename"], "include")):
-                Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "include", file), outIncludeDir)
-            for file in os.listDir(os.path.join(buildDepPath, record["filename"], "bin")):
-                Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "bin", file), binDir)
-            for file in os.listDir(os.path.join(buildDepPath, record["filename"], "lib")):
-                Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "lib", file), libDir)
+            Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "include"),
+                               os.path.join(outIncludeDir, project))
+            Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "bin"), binDir)
+            Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "lib"), libDir)
+            Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "cmake"),
+                               os.path.join(FileSystem.getDirectory(FileSystem.WORKING), "cmake"))
 
     def defaultSetupWorkspace(self):
         print("Setting up workspaces for project [%s]" % self._project_name)
@@ -253,6 +253,10 @@ class MetaBuild(object):
             Utilities.copyTree(os.path.join(outRoot, outDir), os.path.join(packageDir, packageFileName, outDir))
         Utilities.copyTree(FileSystem.getDirectory(FileSystem.CMAKE_BASE_DIR),
                            os.path.join(packageDir, packageFileName, "cmake"))
+        Utilities.copyTree(os.path.join(FileSystem.getDirectory(FileSystem.ROOT), "LICENSE"),
+                           os.path.join(packageDir, packageFileName))
+        Utilities.copyTree(os.path.join(FileSystem.getDirectory(FileSystem.ROOT), "ReadMe.md"),
+                           os.path.join(packageDir, packageFileName))
 
         with tarfile.open(os.path.join(packageDir, packageFileName + ".tar.gz"),
                           "w:gz") as tarFile:
