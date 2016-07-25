@@ -298,6 +298,8 @@ class MetaBuild(object):
     #  for each project).
     def run(self, parsedCommandLine):
         (buildSteps, self._custom_args) = (parsedCommandLine[0], parsedCommandLine[1])
+        # convert to function pointers
+        buildSteps = [getattr(self, buildStep) for buildStep in buildSteps if hasattr(self, buildStep)]
 
         # this build MUST have a project name to run
         if self._project_name == "":
