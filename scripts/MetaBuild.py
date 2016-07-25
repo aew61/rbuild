@@ -105,11 +105,10 @@ class MetaBuild(object):
             for file in os.listDir(os.path.join(buildDepPath, record["filename"], "lib")):
                 Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "lib", file), libDir)
 
-    def setupWorkspace(self):
+    def defaultSetupWorkspace(self):
         print("Setting up workspaces for project [%s]" % self._project_name)
         self.cleanBuildWorkspace()
         Utilities.mkdir(FileSystem.getDirectory(FileSystem.WORKING, self._config, self._project_name))
-        self.loadDependencies(self.parseDependencyFile())
 
     def generateProjectVersion(self):
         outIncludeDir = os.path.join(
@@ -151,7 +150,7 @@ class MetaBuild(object):
         return formattedHeader, formattedSrc
 
     def defaultPreBuild(self):
-        self.setupWorkspace()
+        self.defaultSetupWorkspace() if not hasattr(self, "customSetupWorkspace") else self.customSetupWorkspace()
         self.generateProjectVersion()
 
     def getCMakeArgs(self, pathPrefix, workingDirectory, test, logging, python):
@@ -331,7 +330,7 @@ class MetaBuild(object):
     def help(self):
         print("global commands:")
         print("     global build steps:")
-        print("         setupWorkspace              removed previous project build files and directories.")
+        print("         defaultSetupWorkspace       removed previous project build files and directories.")
         print("         document                    generates documentation for all project source files.")
         print("         package                     packages up project binaries and public headers for")
         print("                                     distribution.")
