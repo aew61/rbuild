@@ -106,7 +106,7 @@ class ProjectBuild(MetaBuild):
                 insertOne=True)
             self._httpRequest.upload(packageDir,
                                      fileName=packageFileName + ".tar.gz",
-                                     urlParams=[os.environ["JOB_NAME"], self.config.lower()])
+                                     urlParams=[self._project_name, self.config.lower()])
 
     def help(self):
         print("command specific to project [%s]" % self._project_name)
