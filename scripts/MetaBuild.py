@@ -20,11 +20,7 @@ class MetaBuild(object):
         self._project_namespace = ""
         self._source_dirs = ["cpp"]
         self._build_steps = []
-        self._project_build_number = "%s.%s.%s.%s" % (
-            os.environ["MAJOR_VER"] if os.environ.get("MAJOR_VER") is not None else 0,
-            os.environ["MINOR_VER"] if os.environ.get("MINOR_VER") is not None else 0,
-            os.environ["PATCH"] if os.environ.get("PATCH") is not None else 0,
-            os.environ["BUILD_NUMBER"] if os.environ.get("BUILD_NUMBER") is not None else 0
+        self._project_build_number = "0.0.0.0"
         )  # major.minor.patch.build
         self._configurations = ["debug", "release"]
         self._build_directory = FileSystem.getDirectory(FileSystem.WORKING)
@@ -72,12 +68,12 @@ class MetaBuild(object):
         for project in requiredProjects:
             self._dbManager.openCollection(project[0].lower())
             # find correct configuration and version
-            projectRecords.append([project[0], self._dbManager.query(
+            projectRecords.append([project[0], [x for x in self._dbManager.query(
                 {
                     "config": self._config.lower(),
                 },
                 sortScheme=["build_num"]
-            )[-1]])
+            )][-1]])
         return projectRecords
 
     def loadDependencies(self, requiredProjects):
@@ -158,64 +154,9 @@ class MetaBuild(object):
 
         return formattedHeader, formattedSrc
 
-    # MOVE THESE METHODS TO LocalBuild.py FOR EACH PROJECT THAT REQUIRES IT
-    # --------------------------------------------------------------------
-    def generateConfig(self, asyncConfigPath=None, asyncConfigFileName=None):
-        outIncludeDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT),
-                                     "include")
-        projectLogDir = FileSystem.getDirectory(FileSystem.LOG_DIR, self._config, self._project_name)
-        asyncConfig = None
-        if asyncConfigPath is None:
-            asyncConfig = os.path.join(FileSystem.getDirectory(FileSystem.CLIENT_CONFIG),
-                                       (asyncConfigFileName if asyncConfigFileName is not None else "AsyncConfig.xml"))
-        else:
-            asyncConfig = asyncConfigPath
-        Utilities.mkdir(outIncludeDir)
-
-        configArgs = []
-
-        configArgs.append(['std::string', 'LOGGING_ROOT', 'dir', projectLogDir.replace("\\", "/")])
-        if "Robos" in self._project_name:
-            configArgs.append(['std::string', 'ASYNC_CONFIG_PATH', 'file', asyncConfig.replace("\\", "/")])
-
-        (formattedConfigArgsHeader, formattedConfigArgsSrc) = self.checkConfigArgsAndFormat("\t", configArgs)
-
-        if os.path.exists(projectLogDir):
-            Utilities.rmTree(projectLogDir)
-        Utilities.mkdir(projectLogDir)
-        projNameUpper = self._project_name.upper()
-        with open(os.path.join(outIncludeDir, self._project_name + "Config.hpp"), 'w') as file:
-            file.write("#pragma once\n"
-                       "#ifndef " + projNameUpper + "_CONFIG_" + projNameUpper + "CONFIG_HPP\n"
-                       "#define " + projNameUpper + "_CONFIG_" + projNameUpper + "CONFIG_HPP\n\n"
-                       "// SYSTEM INCLUDES\n"
-                       "#include <string>\n\n"
-                       "// C++ PROJECT INCLUDES\n\n"
-                       "namespace " + self._project_name + "\n"
-                       "{\n"
-                       "namespace Config\n"
-                       "{\n\n" +
-                       formattedConfigArgsHeader +
-                       "} // end of namespace Config\n"
-                       "} // end of namespace " + self._project_name + "\n"
-                       "#endif // end of " + projNameUpper + "_CONFIG_" + projNameUpper + "CONFIG_HPP\n")
-        with open(os.path.join(outIncludeDir, self._project_name + "Config.cpp"), 'w') as file:
-            file.write("// SYSTEM INCLUDES\n\n"
-                       "// C++ PROJECT INCLUDES\n"
-                       "#include \"" + self._project_name + "Config.hpp\"\n\n"
-                       "namespace " + self._project_name + "\n"
-                       "{\n"
-                       "namespace Config\n"
-                       "{\n\n" +
-                       formattedConfigArgsSrc +
-                       "} // end of namespace Config\n"
-                       "} // end of namespace " + self._project_name + "\n")
-
-    def preBuild(self, asyncConfigPath=None, asyncConfigFileName=None):
+    def defaultPreBuild(self):
         self.setupWorkspace()
         self.generateProjectVersion()
-        self.generateConfig(asyncConfigPath, asyncConfigFileName)
-    # --------------------------------------------------------------------------
 
     def getCMakeArgs(self, pathPrefix, workingDirectory, test, logging, python):
         CMakeProjectDir = "projects"
@@ -308,29 +249,13 @@ class MetaBuild(object):
         if os.path.exists(packageDir):
             Utilities.rmTree(packageDir)
         Utilities.mkdir(packageDir, packageFileName)
-        outRoot = FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name)
+        outRoot = FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config)
         for outDir in os.listDir(outRoot):
             Utilities.copyTree(os.path.join(outRoot, outDir), os.path.join(packageDir, packageFileName))
 
-        productNumbers = [int(x) for x in self._project_build_number.split(".")]
         with tarfile.open(os.path.join(packageDir, packageFileName + ".tar.gz"),
                           "w:gz") as tarFile:
             tarFile.add(os.path.join(packageDir, packageFileName))
-            self._dbManager.openCollection(self._project_name.lower())
-            self._dbManager.insert(
-                {
-                    "fileName": packageFileName,
-                    "filetype": ".tar.gz",
-                    "major_version": productNumbers[0],
-                    "minor_version": productNumbers[1],
-                    "patch": productNumbers[2],
-                    "build_num": productNumbers[3],
-                    "config": self._config.lower(),
-                },
-                insertOne=True)
-        self._httpRequest.upload(packageDir,
-                                 fileName=packageFileName + ".tar.gz",
-                                 urlParams=[os.environ["JOB_NAME"], self.config.lower()])
 
     def runUnitTests(self, iterations=1, test="OFF", valgrind="OFF"):
         print("Running unit tests for project [%s]" % self._project_name)
@@ -407,25 +332,25 @@ class MetaBuild(object):
 
 
 def help():
-    print "global commands:"
-    print "     global build steps:"
-    print "         setupWorkspace              removed previous project build files and directories."
-    print "         document                    generates documentation for all project source files."
-    print "         package                     packages up project binaries and public headers for"
-    print "                                     distribution."
-    print "         runUnitTests                runs the project unit tests."
-    print "     global custom variables:"
-    print "         -configuration <project>    the configuration of the build (debug or release)."
-    print "         -projects  <projects...>    the projects that will be built and the order in which"
-    print "                                     they are built."
-    print "         -iterations <num>           the number of times that unit tests will be run as part"
-    print "                                     or the build process."
-    print "         -logging <ON|OFF>           enables or disables logging capabilites (default = OFF)."
-    print "         -test <ON|OFF>              enables or disables running unit tests as part of build"
-    print "                                     process."
-    print "         -python <ON|OFF>            enables or disables Python embedding (default = OFF)."
-    print "     UNIX custom variables:"
-    print "         -valgrind <ON|OFF>          enables valgrind for executable testing support"
-    print "                                     (default = OFF)."
-    print ""
-    print ""
+    print("global commands:")
+    print("     global build steps:")
+    print("         setupWorkspace              removed previous project build files and directories.")
+    print("         document                    generates documentation for all project source files.")
+    print("         package                     packages up project binaries and public headers for")
+    print("                                     distribution.")
+    print("         runUnitTests                runs the project unit tests.")
+    print("     global custom variables:")
+    print("         -configuration <project>    the configuration of the build (debug or release).")
+    print("         -projects  <projects...>    the projects that will be built and the order in which")
+    print("                                     they are built.")
+    print("         -iterations <num>           the number of times that unit tests will be run as part")
+    print("                                     or the build process.")
+    print("         -logging <ON|OFF>           enables or disables logging capabilites (default = OFF).")
+    print("         -test <ON|OFF>              enables or disables running unit tests as part of build")
+    print("                                     process.")
+    print("         -python <ON|OFF>            enables or disables Python embedding (default = OFF).")
+    print("     UNIX custom variables:")
+    print("         -valgrind <ON|OFF>          enables valgrind for executable testing support")
+    print("                                     (default = OFF).")
+    print("")
+    print("")
