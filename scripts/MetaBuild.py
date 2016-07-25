@@ -23,13 +23,8 @@ class MetaBuild(object):
         self._project_build_number = "0.0.0.0"  # major.minor.patch.build
         self._configurations = ["debug", "release"]
         self._build_directory = FileSystem.getDirectory(FileSystem.WORKING)
-
-        if os.environ.get("MONGODB_URI") is None:
-            Utilities.failExecution("MONGODB_URI env var not set. Cannot download dependencies")
-        if os.environ.get("FILESERVER_URI") is None:
-            Utilities.failExecution("FILESERVER_URI env var not set. Cannot download dependencies")
-        self._dbManager = DBManager.DBManager(databaseName=self._project_namespace.lower())
-        self._httpRequest = HTTPRequest.HTTPRequest(os.environ["FILESERVER_URI"])
+        self._dbManager = None
+        self._httpRequest = None
 
     # removes previous builds so that this build
     # is a fresh build (on this machine). This
@@ -64,10 +59,12 @@ class MetaBuild(object):
 
     def findDependencyVersions(self, requiredProjects):
         projectRecords = []
+        dbManager = None
         for project in requiredProjects:
-            self._dbManager.openCollection(project[0].lower())
+            dbManager = DBManager.DBManager(databaseName=project[0])
+            dbManager.openCollection(self._config.lower())
             # find correct configuration and version
-            projectRecords.append([project[0], [x for x in self._dbManager.query(
+            projectRecords.append([project[0], [x for x in dbManager.query(
                 {
                     "config": self._config.lower(),
                 },
