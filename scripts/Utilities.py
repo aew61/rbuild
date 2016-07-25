@@ -93,7 +93,7 @@ def copyTree(srcPath, destPath):
 
 # this is no longer windows specific
 def getProcessorInfo():
-    bits = platform.processor()[0]
+    bits = platform.processor()
     machine = platform.machine().lower()
     if "64" in bits:
         bits = 64
