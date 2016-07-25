@@ -125,4 +125,4 @@ if __name__ == "__main__":
         if response.status_code != 200:
             failExecution("Error %s uploading %s to %s" % (response.status_code,
                                                            tarFileName,
-                                                           os.environ["FILESERVER_URI"] + "BuildScripts_dev/"))
+                                                           os.environ["FILESERVER_URI"] + "BuildScripts/"))
