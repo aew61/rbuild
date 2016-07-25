@@ -69,13 +69,15 @@ class MetaBuild(object):
                     "config": self._config.lower(),
                     "OS": platform.system().lower(),
                 },
-                sortScheme=["build_num"]
+                sortScheme="build_num"
             )][-1]])
         return projectRecords
 
     def loadDependencies(self, requiredProjects):
         dbRecords = self.findDependencyVersions(requiredProjects)
         buildDepPath = FileSystem.getDirectory(FileSystem.BUILD_DEPENDENCIES, self._config, self._project_name)
+        if not os.path.exists(buildDepPath):
+            Utilities.mkdir(buildDepPath)
         binDir = os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT,
                                                       self._config, self._project_name), "bin")
         libDir = os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT,
@@ -91,19 +93,19 @@ class MetaBuild(object):
 
         for project, record in dbRecords:
             # load the project
-            self._httpRequest.download(os.path.join(buildDepPath, record["filename"] + record["filetype"]),
+            self._httpRequest.download(os.path.join(buildDepPath, record["fileName"] + record["filetype"]),
                                        urlParams=[project, self._config.lower(),
-                                                  record["filename"] + record["filetype"]])
+                                                  record["fileName"] + record["filetype"]])
             # open the tar.gz file
-            with tarfile.open(os.path.join(buildDepPath, record["filename"] + record["filetype"]), "r:gz") as tarFile:
-                tarFile.extractAll(buildDepPath)
+            with tarfile.open(os.path.join(buildDepPath, record["fileName"] + record["filetype"]), "r:gz") as tarFile:
+                tarFile.extractall(buildDepPath)
 
             # copy to appropriate directories
-            Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "include"),
+            Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "include"),
                                os.path.join(outIncludeDir, project))
-            Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "bin"), binDir)
-            Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "lib"), libDir)
-            Utilities.copyTree(os.path.join(buildDepPath, record["filename"], "cmake"),
+            Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "bin"), binDir)
+            Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "lib"), libDir)
+            Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "cmake"),
                                os.path.join(FileSystem.getDirectory(FileSystem.WORKING), "cmake"))
 
     def defaultSetupWorkspace(self):
