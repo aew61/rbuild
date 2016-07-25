@@ -255,7 +255,7 @@ class MetaBuild(object):
                            os.path.join(packageDir, packageFileName, "cmake"))
         Utilities.copyTree(os.path.join(FileSystem.getDirectory(FileSystem.ROOT), "LICENSE"),
                            os.path.join(packageDir, packageFileName))
-        Utilities.copyTree(os.path.join(FileSystem.getDirectory(FileSystem.ROOT), "ReadMe.md"),
+        Utilities.copyTree(os.path.join(FileSystem.getDirectory(FileSystem.ROOT), "README.md"),
                            os.path.join(packageDir, packageFileName))
 
         with tarfile.open(os.path.join(packageDir, packageFileName + ".tar.gz"),
