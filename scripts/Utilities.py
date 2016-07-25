@@ -106,13 +106,13 @@ def getProcessorInfo():
 
 def getVisualStudioVersionAndVsVarsAllPath():
     key = "SOFTWARE\\Microsoft\\VisualStudio\\%s"
-    possibleVersions = [float(x) for x in range(0, 16)]
+    possibleVersions = [x for x in range(0, 16)]
     installedVersions = []
     latestWorkingVersion = None
 
     for version in possibleVersions:
         try:
-            _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, key % version, 0, _winreg.KEY_READ)
+            _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, key % float(version), 0, _winreg.KEY_READ)
             installedVersions.append(version)
         except Exception:
             pass
@@ -120,7 +120,7 @@ def getVisualStudioVersionAndVsVarsAllPath():
     vsCommToolsPath = None
     for version in installedVersions:
         if "VS%s0COMNTOOLS" % version in os.environ:
-            vsCommToolsPath = os.path.join(os.environ["VS%s0COMNTOOLS" % version], '..', '..', 'vcvarsall.bat')
+            vsCommToolsPath = os.path.abspath(os.path.join(os.environ["VS%s0COMNTOOLS" % version], '..', '..', 'VC', 'vcvarsall.bat'))
             if os.path.exists(vsCommToolsPath):
                 latestWorkingVersion = version
     return (latestWorkingVersion, vsCommToolsPath)
