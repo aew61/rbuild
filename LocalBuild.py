@@ -86,7 +86,7 @@ def copyTree(srcPath, destPath):
 if __name__ == "__main__":
     # run flake8 on scripts/ directory
     PFork(appToExecute="flake8",
-          argsForApp=["scripts/",
+          argsForApp=[".", "scripts/",
                       "--config=%s" % (os.path.join(currentDir, "config", "flake8.cfg"))],
           failOnError=True)
 
