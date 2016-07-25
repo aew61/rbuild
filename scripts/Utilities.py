@@ -86,8 +86,8 @@ def copyTree(srcPath, destPath):
         if not os.path.exists(destPath):
             mkdir(destPath)
         for item in os.listdir(srcPath):
-            s = os.path.join(srcPath, s)
-            d = os.path.join(destPath, d)
+            s = os.path.join(srcPath, item)
+            d = os.path.join(destPath, item)
             copyTree(s, d)
     else:
         shutil.copy2(srcPath, destPath)  # copy2() copies file metaData
