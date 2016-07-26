@@ -82,7 +82,7 @@ class MetaBuild(object):
                                                       self._config, self._project_name), "bin")
         libDir = os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT,
                                                       self._config, self._project_name), "lib")
-        outIncludeDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT,
+        outIncludeDir = os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT,
                                                              self._config, self._project_name), "include")
         if not os.path.exists(binDir):
             Utilities.mkdir(binDir)
