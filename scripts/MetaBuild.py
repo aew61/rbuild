@@ -105,18 +105,12 @@ class MetaBuild(object):
                 tarFile.extractall(buildDepPath)
 
             # copy to appropriate directories
-            print("Copying %s to %s:" % (os.path.join(buildDepPath, record["fileName"], "include", project),
-                                         os.path.join(outIncludeDir, project)))
             Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "include", project),
                                os.path.join(outIncludeDir, project))
-            print("Copying %s to %s:" % (os.path.join(buildDepPath, record["fileName"], "bin"),
-                                         binDir))
-            Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "bin"), binDir)
-            print("Copying %s to %s:" % (os.path.join(buildDepPath, record["fileName"], "lib"),
-                                         libDir))
+
+            if platform.system() == "Windows":
+                Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "bin"), binDir)
             Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "lib"), libDir)
-            print("Copying %s to %s:" % (os.path.join(buildDepPath, record["fileName"], "cmake"),
-                                         os.path.join(FileSystem.getDirectory(FileSystem.WORKING), "cmake")))
             Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "cmake"),
                                os.path.join(FileSystem.getDirectory(FileSystem.WORKING), "cmake"))
 
