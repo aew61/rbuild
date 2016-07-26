@@ -201,10 +201,10 @@ class MetaBuild(object):
 
         fullToolchainPath = None
         if platform.system() == "Windows":
-            fullToolchainPath = os.path.join(toolchainDir, "toolchain_windows.cmake")
+            fullToolchainPath = os.path.join(toolchainDir, "toolchain_windows_%s.cmake" % Utilities.getMachineBits())
             # "x86")
         else:
-            fullToolchainPath = os.path.join(toolchainDir, "toolchain_unix.cmake")
+            fullToolchainPath = os.path.join(toolchainDir, "toolchain_unix_%s.cmake" % Utilities.getMachineBits())
 
         monoPath = os.environ.get("MONO_BASE_PATH").replace("\\", "/") \
             if os.environ.get("MONO_BASE_PATH") is not None else ""
