@@ -23,6 +23,7 @@ class MetaBuild(object):
         self._project_build_number = "0.0.0.0"  # major.minor.patch.build
         self._configurations = ["debug", "release"]
         self._build_directory = FileSystem.getDirectory(FileSystem.WORKING)
+        self._tests_to_run = []
         self._dbManager = None
         self._httpRequest = None
 
@@ -60,17 +61,20 @@ class MetaBuild(object):
     def findDependencyVersions(self, requiredProjects):
         projectRecords = []
         dbManager = None
+        buildDepPath = FileSystem.getDirectory(FileSystem.BUILD_DEPENDENCIES, self._config, self._project_name)
         for project in requiredProjects:
             dbManager = DBManager.DBManager(databaseName=project[0])
             dbManager.openCollection(self._config.lower())
             # find correct configuration and version
-            projectRecords.append([project[0], [x for x in dbManager.query(
+            mostRecentVersion = [x for x in dbManager.query(
                 {
                     "config": self._config.lower(),
-                    "OS": platform.system().lower(),
+                    "OS": platform.system().lower()
                 },
                 sortScheme="build_num"
-            )][-1]])
+            )][-1]
+            if not os.path.exists(os.path.join(buildDepPath, mostRecentVersion["fileName"])):
+                projectRecords.append([project[0], mostRecentVersion])
         return projectRecords
 
     def loadDependencies(self, requiredProjects):
@@ -101,7 +105,7 @@ class MetaBuild(object):
                 tarFile.extractall(buildDepPath)
 
             # copy to appropriate directories
-            Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "include"),
+            Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "include", project),
                                os.path.join(outIncludeDir, project))
             Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "bin"), binDir)
             Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "lib"), libDir)
@@ -161,8 +165,7 @@ class MetaBuild(object):
         relCMakeProjectDir = os.path.relpath(CMakeProjectDir,
                                              workingDirectory)
 
-        dummyDir = os.path.join(
-            FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name), 'dummy')
+        dummyDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name), "dummy")
 
         # projectWorkingDir = getDirectory(FileSystemDirectory.ROOT, self._config, self._project_name)
         installRootDir = FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config,  self._project_name)
@@ -171,12 +174,12 @@ class MetaBuild(object):
         # to place the appropriate build components in the correct
         # directories.
         binDir = os.path.relpath(
-            os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name), "bin"),
+            os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config, self._project_name), "bin"),
             dummyDir
         )
 
         libDir = os.path.relpath(
-            os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name), "lib"),
+            os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config, self._project_name), "lib"),
             dummyDir
         )
         outIncludeDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name),
