@@ -55,17 +55,17 @@ class DBManager(object):
         else:
             self.collection.update_many(queryParams, updateData)
 
-    def getAllKeysInCollection(self, paramsToFind=[]):
+    def getAllKeysInCollection(self, paramsToFind=[], paramsToIgnore=[]):
         allParams = set()
         for doc in self.query({}):
             for key in doc.keys():
-                if key not in allParams and key in paramsToFind:
+                if key not in allParams and key in paramsToFind and key not in paramsToIgnore:
                     allParams.add(key)
         return allParams
 
-    def getAllKeysAndValuesInCollection(self, paramsToFind=[]):
+    def getAllKeysAndValuesInCollection(self, paramsToFind=[], paramsToIgnore=[]):
         allParamsDict = {}
-        for key in self.getAllKeysInCollection(paramsToFind):
+        for key in self.getAllKeysInCollection(paramsToFind, paramsToIgnore):
             allParamsDict[key] = self.collection.distinct(key)
         return allParamsDict
 
