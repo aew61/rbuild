@@ -121,7 +121,9 @@ if __name__ == "__main__":
 
         # try to post file to file server
         response = requests.post(urljoin(os.environ["FILESERVER_URI"], "BuildScripts/"),
-                                 files={"upload_file": open(tarFileName + ".tar.gz", "rb")})
+                                 files={"upload_file": open(tarFileName + ".tar.gz", "rb")},
+                                 auth=requests.auth.HTTPBasicAuth(os.environ["DBFILESERVER_USERNAME"],
+                                                                  os.environ["DBFILESERVER_PASSWORD"]))
         if response.status_code != 200:
             failExecution("Error %s uploading %s to %s" % (response.status_code,
                                                            tarFileName,
