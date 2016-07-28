@@ -316,7 +316,8 @@ class MetaBuild(object):
         Utilities.PFork(appToExecute="gcovr",
                         argsForApp=["--branches", "--root=%s" % sourceRoot, "--html", "--html-details",
                                     "--output=%s" % os.path.join(reportDir,
-                                                                 self._project_name + ".coverage_html_report.html"])
+                                                                 self._project_name + ".coverage_html_report.html")],
+                        failOnError=True)
 
     def cover(self, iterations=1, test="OFF", valgrind="OFF"):
         if platform.system().lower() == "windows":
