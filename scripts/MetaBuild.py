@@ -283,7 +283,7 @@ class MetaBuild(object):
             Utilities.mkdir(testReportDir)
 
         for iteration in range(1, int(iterations) + 1):
-            print("Running unit tests [%s/%s]" % (iteration + 1, iterations))
+            print("Running unit tests [%s/%s]" % (iteration, iterations))
             for testToRun in self._tests_to_run:
                 args = ["--gtest_output=xml:%s.JUnit.xml" % os.path.join(testReportDir, testToRun)]
                 executablePath = os.path.join(installRoot, "bin", testToRun)
