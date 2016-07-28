@@ -229,9 +229,9 @@ class MetaBuild(object):
             "-DCMAKE_TOOLCHAIN_FILE=%s" % fullToolchainPath,  # toolchain file path (relative)
             "-DBUILD_%s=ON" % self._project_name.upper(),
             "-DCMAKE_INSTALL_PREFIX=%s" % allBuiltOutDir,  # install root dir
+            "-DENABLE_COVER=%s" % "ON" if self._cover else "OFF",
             "-DRUN_UNIT_TESTS=%s" % test,
             "-DENABLE_LOGGING=%s" % logging,
-            "-DENABLE_COVER=%s" % "ON" if self._cover else "OFF",
             "-DMONO_PATH=\"%s\"" % monoPath,
             "-DPYTHON_PATH=\"%s\"" % pythonPath,
             "-DPYTHON_VERSION=%s" % pythonVer,
