@@ -300,6 +300,30 @@ class MetaBuild(object):
             if iterations > 1:
                 print("\n\n")
 
+    def coverWindows(self, iterations=1, test="OFF"):
+        # run opencppcoverage
+        pass
+
+    def coverLinux(self, iterations=1, test="OFF", valgrind="OFF"):
+        self.runUnitTests(iterations, test, valgrind)
+        # get cobertura reports from gcovr
+        reportDir = FileSystem.getDirectory(FileSystem.TEST_REPORT_DIR, self._config, self._project_name)
+        sourceRoot = FileSystem.getDirectory(FileSystem.CPP_SOURCE_DIR)
+        Utilities.PFork(appToExecute="gcovr",
+                        argsForApp=["--branches", "--xml-pretty", "-root=%s" % sourceRoot,
+                                    "--output=%s" % os.path.join(reportDir, self._project_name + ".coverage.xml")],
+                        failOnError=True)
+        Utilities.PFork(appToExecute="gcovr",
+                        argsForApp=["--branches", "--root=%s" % sourceRoot, "--html", "--html-details",
+                                    "--output=%s" % os.path.join(reportDir,
+                                                                 self._project_name + ".coverage_html_report.html"])
+
+    def cover(self, iterations=1, test="OFF", valgrind="OFF"):
+        if platform.system().lower() == "windows":
+            self.coverWindows(iterations, test)
+        else:
+            self.coverLinux(iterations, test, valgrind)
+
     # executes a particular part of the build process and fails the build
     # if that build step fails.
     def executeStep(self, buildStep):
