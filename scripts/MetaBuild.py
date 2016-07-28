@@ -276,9 +276,14 @@ class MetaBuild(object):
             return
         installRoot = FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config,  self._project_name)
         args = []
-        for iteration in range(0, int(iterations)):
+        testReportDir = FileSystem.getDirectory(FileSystem.TEST_REPORT_DIR, self._config, self._project_name)
+        if not os.path.exists(testReportDir):
+            Utilities.mkdir(testReportDir)
+        
+        for iteration in range(1, int(iterations) + 1):
             print("Running unit tests [%s/%s]" % (iteration + 1, iterations))
             for testToRun in self._tests_to_run:
+                args = ["--gtest_output=xml:%s.JUnit.xml" % os.path.join(testReportDir, testToRun)]
                 executablePath = os.path.join(installRoot, "bin", testToRun)
                 if platform.system() == "Windows":
                     executablePath += ".exe"
@@ -286,8 +291,8 @@ class MetaBuild(object):
                     if valgrind == "ON":
                         args = ['valgrind', '--leak-check=yes', executablePath]
                 if os.path.exists(executablePath):
-                    Utilities.PFork(appToExecute=(executablePath if len(args) == 0 else None),
-                                    argsForApp=args, failOnError=True)
+                    Utilities.PFork(appToExecute=executablePath,
+                                    argsForApp=args if iteration == 1 else [], failOnError=True)
                 else:
                     print("%s does NOT exist!" % executablePath)
             if iterations > 1:
