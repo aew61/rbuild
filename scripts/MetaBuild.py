@@ -320,11 +320,14 @@ class MetaBuild(object):
                                                                  self._project_name + ".coverage_html_report.html")],
                         failOnError=True)
 
-    def cover(self, iterations=1, test="OFF", valgrind="OFF"):
-        if platform.system().lower() == "windows":
-            self.coverWindows(iterations, test)
+    def coverWithUnit(self, iterations=1, test="OFF", valgrind="OFF"):
+        if self._cover:
+            if platform.system().lower() == "windows":
+                self.coverWindows(iterations, test)
+            else:
+                self.coverLinux(iterations, test, valgrind)
         else:
-            self.coverLinux(iterations, test, valgrind)
+            self.runUnitTests(iterations, test, valgrind)
 
     # executes a particular part of the build process and fails the build
     # if that build step fails.
