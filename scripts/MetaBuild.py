@@ -231,7 +231,7 @@ class MetaBuild(object):
             "-DCMAKE_INSTALL_PREFIX=%s" % allBuiltOutDir,  # install root dir
             "-DRUN_UNIT_TESTS=%s" % test,
             "-DENABLE_LOGGING=%s" % logging,
-            "-DENABLE_COVER=%s" % "TRUE" if self._cover else "FALSE",
+            "-DENABLE_COVER=%s" % "ON" if self._cover else "OFF",
             "-DMONO_PATH=\"%s\"" % monoPath,
             "-DPYTHON_PATH=\"%s\"" % pythonPath,
             "-DPYTHON_VERSION=%s" % pythonVer,
