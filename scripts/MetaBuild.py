@@ -279,7 +279,7 @@ class MetaBuild(object):
         testReportDir = FileSystem.getDirectory(FileSystem.TEST_REPORT_DIR, self._config, self._project_name)
         if not os.path.exists(testReportDir):
             Utilities.mkdir(testReportDir)
-        
+
         for iteration in range(1, int(iterations) + 1):
             print("Running unit tests [%s/%s]" % (iteration + 1, iterations))
             for testToRun in self._tests_to_run:
