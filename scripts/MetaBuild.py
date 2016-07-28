@@ -302,7 +302,8 @@ class MetaBuild(object):
 
     def coverWindows(self, iterations=1, test="OFF"):
         # run opencppcoverage
-        pass
+        # but for now just run the unit tests
+        self.runUnitTests(iterations, test)
 
     def coverLinux(self, iterations=1, test="OFF", valgrind="OFF"):
         self.runUnitTests(iterations, test, valgrind)
