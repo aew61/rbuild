@@ -311,7 +311,7 @@ class MetaBuild(object):
         reportDir = FileSystem.getDirectory(FileSystem.TEST_REPORT_DIR, self._config, self._project_name)
         sourceRoot = FileSystem.getDirectory(FileSystem.CPP_SOURCE_DIR)
         Utilities.PFork(appToExecute="gcovr",
-                        argsForApp=["--branches", "--xml", "--root=%s" % sourceRoot,
+                        argsForApp=["--branches", "--xml-pretty", "--root=%s" % sourceRoot,
                                     "--output=%s" % os.path.join(reportDir, self._project_name + ".coverage.xml")],
                         failOnError=True)
         Utilities.PFork(appToExecute="gcovr",
