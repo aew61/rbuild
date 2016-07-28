@@ -321,6 +321,9 @@ class MetaBuild(object):
                         failOnError=True)
 
     def coverWithUnit(self, iterations=1, test="OFF", valgrind="OFF"):
+        testReportDir = FileSystem.getDirectory(FileSystem.TEST_REPORT_DIR, self._config, self._project_name)
+        if not os.path.exists(testReportDir):
+            Utilities.mkdir(testReportDir)
         if self._cover:
             if platform.system().lower() == "windows":
                 self.coverWindows(iterations, test)
