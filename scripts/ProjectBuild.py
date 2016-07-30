@@ -109,7 +109,7 @@ class ProjectBuild(MetaBuild):
                 insertOne=True)
             self._httpRequest.upload(packageDir,
                                      fileName=packageFileName + ".tar.gz",
-                                     urlParams=[relativeUrl])
+                                     urlParams=[node._name, self._config.lower()])
             self._dbManager.openCollection("available_packages")
             packageDict = {
                 "package_name": node._name,
