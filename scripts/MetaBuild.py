@@ -56,7 +56,7 @@ class MetaBuild(object):
             },
             returnOne=True)) > 0
 
-    def parsePackageFile(self, packageFilePath, packagesToBuild, depsToDownload):
+    def parsePackageFile(self, packageFilePath, depsToDownload):
         tree = ET.parse(packageFilePath)
         root = tree.getroot()
         packageDict = {}
@@ -69,16 +69,17 @@ class MetaBuild(object):
             if "name" == childElement.tag:
                 packageName = childElement.text
             elif "robos_package_dependency" == childElement.tag:
-                if childElement.text not in packagesToBuild and\
+                if childElement.text not in self._packages_to_build and\
                    self.packageAvailable(childElement.text) and childElement not in depsToDownload:
                     # download this dep
                     depsToDownload[childElement.text] = None
+                    packageDeps.append([childElement.text, "download"])
                     if "externalDeps" not in packageDict:
                         packageDict["externalDeps"] = [childElement.text]
                     else:
                         packageDict["externalDeps"].append(childElement.text)
                 elif childElement.text in packagesToBuild:
-                    packageDeps.append(childElement.text)
+                    packageDeps.append([childElement.text, "build"])
                 else:
                     Utilities.failExecution("Not sure what to do with package dependency: %s." +
                                             "Cannot download it and it is not present on system")
@@ -89,13 +90,15 @@ class MetaBuild(object):
         print("Required packages for project [%s] are %s" % (self._project_name, packageDeps))
         return packageName, packageDeps, packageDict
 
-    def createGraph(self, packagesToBuild):
+    def createGraph(self):
         # need to open all packages.xmls and get the associated data
-        for packageDirName, packagePath in packagesToBuild.items():
-            packageName, packageDeps, packageInfo =\
-                self.parsePackageFile(os.path.join(packagePath, "package.xml"), packagesToBuild, self._globalDeps)
+        for packageDirName, packagePath in self._packages_to_build.items():
+            packageNameAndBuildType, packageDeps, packageInfo =\
+                self.parsePackageFile(os.path.join(packagePath, "package.xml"), self._globalDeps)
             packageInfo["packageMainPath"] = packagePath
-            self._buildGraph.AddNode(packageName, outgoingEdges=packageDeps, extraInfo=packageInfo)
+            packageInfo["buildType"] = packageNameAndBuildType[1]
+            self._buildGraph.AddNode(packageNameAndBuildType[0],
+                                     outgoingEdges=packageDeps, extraInfo=packageInfo)
 
     def loadGlobalPackageDependencies(self):
         globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, self._config)
@@ -117,6 +120,29 @@ class MetaBuild(object):
                                        urlParams=[mostRecentRecord["relativeUrl"]])
             self._globalDeps[package] = os.path.join(globalDepsDir, mostRecentRecord["fileName"] +
                                                      mostRecentRecord["filetype"])
+
+    def continueLoadingDependencies(self):
+        # parse downloaded packages.xml files and determine if there are unresolved dependencies.
+        # return True if there are more dependencies to download or False if all requirements
+        # are met.
+        numDeps = len(self._buildGraph._nodeMap)
+        tmpGlobalDeps = self._globalDeps
+        self._globalDeps = {}
+        globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, self._config)
+        for name, packageTarGzPath in tmpGlobalDeps.items():
+            # open all .tar.gz files and extract contents to that directory
+            packagePath = packagePath.replace(".tar.gz", "")
+            with tarfile.open(packageTarGzPath, "r:gz") as tarFile:
+                tarFile.extractall(packagePath)
+            packageNameAndBuildType, packageDeps, packageInfo =\
+                self.parsePackageFile(os.path.join(packagePath, "package.xml"), self._globalDeps)
+            if packageNameAndBuildType[0] not in self._buildGraph._nodeMap:
+                packageInfo["packageMainPath"] = packagePath
+                packageInfo["buildType"] = packageNameAndBuildType[1]
+                self._buildGraph.AddNode(packageNameAndBuildType[0],
+                                         outgoingEdges=packageDeps, extraInfo=packageInfo)
+
+        return len(self._buildGraph._nodeMap) > numDeps
 
     # removes previous builds so that this build
     # is a fresh build (on this machine). This
@@ -456,7 +482,8 @@ class MetaBuild(object):
         if len(buildSteps) == 0:
             buildSteps = self._build_steps
 
-        self.createGraph(self.findProjectsInWorkspace())
+        self._packages_to_build = self.findProjectsInWorkspace()
+        self.createGraph()
         buildOrder = self._buildGraph.TopologicalSort()
         maxPackageLenth = len("---------------------------------------")
         for packageToBuild in buildOrder:
@@ -478,6 +505,8 @@ class MetaBuild(object):
                 Utilities.failExecution("Unknown configuration [%s]" % self._config)
             print("\nbuilding configuration [%s]\n" % self._config)
             self.loadGlobalPackageDependencies()
+            while(self.continueLoadingDependencies()):
+                self.loadGlobalPackageDependencies()
             for packageToBuild in buildOrder:
                 self._custom_args["node"] = packageToBuild
                 self.executeBuildSteps(buildSteps)
@@ -486,6 +515,8 @@ class MetaBuild(object):
                 print("\nbuilding configuration [%s]\n" % configuration)
                 self._config = configuration
                 self.loadGlobalPackageDependencies()
+                while(self.continueLoadingDependencies()):
+                    self.loadGlobalPackageDependencies()
                 for packageToBuild in buildOrder:
                     self._custom_args["node"] = packageToBuild
                     self.executeBuildSteps(buildSteps)
