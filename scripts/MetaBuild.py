@@ -55,6 +55,7 @@ class MetaBuild(object):
                 {
                     "package_name": packageName,
                     "config": config,
+                    "OS": platform.system().lower(),
                 },
                 returnOne=True)) > 0)
         return val
