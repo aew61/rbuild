@@ -113,7 +113,8 @@ class ProjectBuild(MetaBuild):
             self._dbManager.openCollection("available_packages")
             packageDict = {
                 "package_name": node._name,
-                "config": self._config.lower()
+                "config": self._config.lower(),
+                "OS": platform.system().lower(),
             }
             if len(self._dbManager.query(packageDict, returnOne=True)) == 0:
                 self._dbManager.insert(packageDict, insertOne=True)
