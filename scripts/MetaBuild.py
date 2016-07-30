@@ -78,7 +78,7 @@ class MetaBuild(object):
                         packageDict["externalDeps"] = [childElement.text]
                     else:
                         packageDict["externalDeps"].append(childElement.text)
-                elif childElement.text in packagesToBuild:
+                elif childElement.text in self._packages_to_build:
                     packageDeps.append([childElement.text, "build"])
                 else:
                     Utilities.failExecution("Not sure what to do with package dependency: %s." +
@@ -133,7 +133,7 @@ class MetaBuild(object):
             # open all .tar.gz files and extract contents to that directory
             packagePath = packagePath.replace(".tar.gz", "")
             with tarfile.open(packageTarGzPath, "r:gz") as tarFile:
-                tarFile.extractall(packagePath)
+                tarFile.extractall(globalDepsDir)
             packageNameAndBuildType, packageDeps, packageInfo =\
                 self.parsePackageFile(os.path.join(packagePath, "package.xml"), self._globalDeps)
             if packageNameAndBuildType[0] not in self._buildGraph._nodeMap:
