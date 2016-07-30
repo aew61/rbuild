@@ -1,6 +1,7 @@
 # SYSTEM IMPORTS
 import os
 import requests
+import sys
 
 # PYTHON PROJECT IMPORTS
 import Utilities
@@ -90,4 +91,7 @@ class HTTPRequest(object):
         if response.status_code != 200:
             Utilities.failExecution("Error %s listing contents of %s" % (response.status_code,
                                                                          fullUrlPath))
-        if 
+        if sys.version_info[0] < 3:
+            return str(response.content)
+        else:
+            return response.content.decode("utf-8")
