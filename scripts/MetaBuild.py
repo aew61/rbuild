@@ -74,8 +74,8 @@ class MetaBuild(object):
             elif "robos_package_dependency" == childElement.tag:
                 if childElement.text not in self._packages_to_build and\
                    self.packageAvailable(childElement.text,
-                                         ["debug", "release"] if not "configuration" in self._custom_args\
-                                                              else [self._custom_args["configuration"]]) and\
+                                         ["debug", "release"] if not "configuration" not in self._custom_args
+                                         else [self._custom_args["configuration"]]) and\
                    childElement not in depsToDownload:
                     # download this dep
                     depsToDownload[childElement.text] = None
