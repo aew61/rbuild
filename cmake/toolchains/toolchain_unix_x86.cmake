@@ -20,12 +20,11 @@ else()
     set( CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${SECURITY_LINK_FLAGS}" CACHE STRING "module linker flags")
 endif()
 
-message("ENABLE_COVER: ${ENABLE_COVER}")
-if( ENABLE_COVER )
-    message("SETTING CODE COVERAGE FLAGS FOR G++")
-    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage" CACHE STRING "c++ flags" )
-    set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage" CACHE STRING "c flags" )
-endif()
+# would have to include in above setting to work.
+# if( ENABLE_COVER )
+#     set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage" CACHE STRING "c++ flags" )
+#     set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage" CACHE STRING "c flags" )
+# endif()
 
 set( CMAKE_CXX_COMPILER "g++" )
 set( CMAKE_C_COMPILER "gcc" )
