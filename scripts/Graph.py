@@ -58,7 +58,7 @@ class Graph(object):
 
     def TopologicalSort(self):
         def addToTopologicalOrder(node):
-            if node._extraInfo["buildType"] == "local"
+            if node._extraInfo["buildType"] == "local":
                 self._topologicalOrder.insert(0, node)
         self.DepthFirstSearch(onNodeFinish=addToTopologicalOrder)
         return self._topologicalOrder
