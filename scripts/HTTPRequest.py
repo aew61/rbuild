@@ -90,3 +90,4 @@ class HTTPRequest(object):
         if response.status_code != 200:
             Utilities.failExecution("Error %s listing contents of %s" % (response.status_code,
                                                                          fullUrlPath))
+        if 
