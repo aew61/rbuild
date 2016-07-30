@@ -77,13 +77,13 @@ class ProjectBuild(MetaBuild):
             self.makeTarget(node, ["install"])
 
     def build(self, node):
-        print("Building project [%s]" % self._project_name)
+        print("Building package [%s]" % self._project_name)
         self.executeBuildSteps([self.customPreBuild if hasattr(self, "customPreBuild") else self.defaultPreBuild,
                                 self.cmake, self.make])
 
     def uploadPackagedVersion(self, node):
         if self._project_build_number != "0.0.0.0":
-            print("Uploading project [%s]" % node._name)
+            print("Uploading package [%s]" % node._name)
             packageDir = FileSystem.getDirectory(FileSystem.PACKAGE,
                                                  configuration=self._config,
                                                  projectName=node._name)

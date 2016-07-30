@@ -30,6 +30,7 @@ class MetaBuild(object):
         self._cover = False
         self._buildGraph = Graph.Graph()
         self._globalDeps = {}
+        self._aggregatedGlobalDeps ={}
 
     def findProjectsInWorkspace(self):
         workspaceDir = FileSystem.getDirectory(FileSystem.WORKSPACE_DIR)
@@ -79,6 +80,7 @@ class MetaBuild(object):
                                          else [self._custom_args["configuration"]]) and\
                    childElement not in depsToDownload:
                     # download this dep
+                    print("appending package [%s] for download" % childElement.text)
                     depsToDownload[childElement.text] = None
                     packageDeps.append(childElement.text)
                     if "externalDeps" not in packageDict:
@@ -94,7 +96,7 @@ class MetaBuild(object):
                 packageDict[childElement.tag] = childElement.text
         if packageName is None:
             Utilities.failExecution("package.xml found in %s is missing a name tag" % packageFilePath)
-        print("Required packages for project [%s] are %s" % (self._project_name, packageDeps))
+        print("Required packages for package [%s] are %s" % (packageName, packageDeps))
         return [packageName, buildTag], packageDeps, packageDict
 
     def createGraph(self):
@@ -134,6 +136,8 @@ class MetaBuild(object):
         # return True if there are more dependencies to download or False if all requirements
         # are met.
         numDeps = len(self._buildGraph._nodeMap)
+        if numDeps > 0 and len(self._aggregatedGlobalDeps) == 0:
+            self._aggregatedGlobalDeps = self._globalDeps
         tmpGlobalDeps = self._globalDeps
         self._globalDeps = {}
         globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, self._config)
@@ -150,6 +154,9 @@ class MetaBuild(object):
                 self._buildGraph.AddNode(packageNameAndBuildType[0],
                                          outgoingEdges=packageDeps, extraInfo=packageInfo)
 
+        for newPackageDep in self._globalDeps.keys():
+            if newPackageDep not in self._aggregatedGlobalDeps:
+                self._aggregatedGlobalDeps[newPackageDep] = self._globalDeps[newPackageDep]
         return len(self._buildGraph._nodeMap) > numDeps
 
     # removes previous builds so that this build
@@ -157,7 +164,7 @@ class MetaBuild(object):
     # guarentees that this build uses the most recent
     # source files.
     def cleanBuildWorkspace(self, node):
-        print("Cleaning build directory for project [%s]" % node._name)
+        print("Cleaning build directory for package [%s]" % node._name)
         buildDirectory = FileSystem.getDirectory(FileSystem.WORKING, self._config, node._name)
         if os.path.exists(buildDirectory):
             Utilities.rmTree(buildDirectory)
@@ -224,8 +231,8 @@ class MetaBuild(object):
 
         # copy packages that were downloaded
         for package in node._extraInfo["externalDeps"]:
-            packageName = self._globalDeps[package].replace(globalDepsDir, "").replace(".tar.gz", "")
-            with tarfile.open(self._globalDeps[package], "r:gz") as tarFile:
+            packageName = self._aggregatedGlobalDeps[package].replace(globalDepsDir, "").replace(".tar.gz", "")[1:]
+            with tarfile.open(self._aggregatedGlobalDeps[package], "r:gz") as tarFile:
                 tarFile.extractall(globalDepsDir)
             # copy directories
             # copy to appropriate directories
@@ -239,7 +246,7 @@ class MetaBuild(object):
                                os.path.join(FileSystem.getDirectory(FileSystem.WORKING), "cmake"))
 
     def defaultSetupWorkspace(self, node):
-        print("Setting up workspaces for project [%s]" % node._name)
+        print("Setting up workspaces for package [%s]" % node._name)
         self.cleanBuildWorkspace(node)
         Utilities.mkdir(FileSystem.getDirectory(FileSystem.WORKING, self._config, node._name))
 
@@ -340,8 +347,6 @@ class MetaBuild(object):
             if os.environ.get("PYTHON_BASE_PATH") is not None else ""
         pythonVer = os.environ.get("PYTHON_VERSION") if os.environ.get("PYTHON_VERSION") is not None else 0
 
-        # remember CMake paths need to be relative to the top level
-        # directory that CMake is called (in this case projects/<project_name>)
         CMakeArgs = [
             relCMakeProjectDir,
             "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%s%s" % (pathPrefix, binDir),
@@ -368,12 +373,12 @@ class MetaBuild(object):
     # of the project. We are using Doxygen
     # to fulfill this.
     def document(self, node):
-        print("generating documentation for project [%s]" % node._name)
+        print("generating documentation for package [%s]" % node._name)
 
     # this method will package the project into
     # a gzipped tarball (tar.gz) file.
     def package(self, node):
-        print("packaging project [%s]" % node._name)
+        print("making package [%s]" % node._name)
         packageDir = FileSystem.getDirectory(FileSystem.PACKAGE,
                                              configuration=self._config,
                                              projectName=node._name)
@@ -399,9 +404,9 @@ class MetaBuild(object):
             tarFile.add(os.path.join(packageDir, packageFileName), arcname=packageFileName)
 
     def runUnitTests(self, node, iterations=1, test="OFF", valgrind="OFF"):
-        print("Running unit tests for project [%s]" % node._name)
+        print("Running unit tests for package [%s]" % node._name)
         if test == "OFF":
-            print("Unit tests disables for project [%s]" % node._name)
+            print("Unit tests disables for package [%s]" % node._name)
             return
         installRoot = FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config,  node._name)
         args = []
