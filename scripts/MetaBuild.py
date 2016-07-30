@@ -456,7 +456,6 @@ class MetaBuild(object):
 
         self.createGraph(self.findProjectsInWorkspace())
         buildOrder = self._buildGraph.TopologicalSort()
-        self.loadGlobalPackageDependencies()
         maxPackageLenth = len("---------------------------------------")
         for packageToBuild in buildOrder:
             if len(packageToBuild._name) > maxPackageLenth:
@@ -468,21 +467,25 @@ class MetaBuild(object):
             print("| " + (" " * (maxPackageLenth - len(packageToBuild._name))) + packageToBuild._name + " |")
         print("-" * (maxPackageLenth + 4))
 
-        for packageToBuild in buildOrder:
-            self._custom_args["node"] = packageToBuild
-            # run the build for the user specified configuration else run for
-            # all configurations (the user can restrict this to build for
-            # debug or release versions)
-            if "configuration" in self._custom_args:
-                self._config = self._custom_args["configuration"]
-                if self._config != "release" and self._config != "debug":
-                    Utilities.failExecution("Unknown configuration [%s]" % self._config)
-                print("\nbuilding configuration [%s]\n" % self._config)
+        # run the build for the user specified configuration else run for
+        # all configurations (the user can restrict this to build for
+        # debug or release versions)
+        if "configuration" in self._custom_args:
+            self._config = self._custom_args["configuration"]
+            if self._config != "release" and self._config != "debug":
+                Utilities.failExecution("Unknown configuration [%s]" % self._config)
+            print("\nbuilding configuration [%s]\n" % self._config)
+            self.loadGlobalPackageDependencies()
+            for packageToBuild in buildOrder:
+                self._custom_args["node"] = packageToBuild
                 self.executeBuildSteps(buildSteps)
-            else:
-                for configuration in self._configurations:
-                    print("\nbuilding configuration [%s]\n" % configuration)
-                    self._config = configuration
+        else:
+            for configuration in self._configurations:
+                print("\nbuilding configuration [%s]\n" % configuration)
+                self._config = configuration
+                self.loadGlobalPackageDependencies()
+                for packageToBuild in buildOrder:
+                    self._custom_args["node"] = packageToBuild
                     self.executeBuildSteps(buildSteps)
 
         print("-----------------------")
