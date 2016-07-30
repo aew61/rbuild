@@ -47,14 +47,17 @@ class MetaBuild(object):
                     packagesToBuild[subdir] = fullSubDirPath
         return packagesToBuild
 
-    def packageAvailable(self, packageName):
+    def packageAvailable(self, packageName, configs):
         self._dbManager.openCollection("available_packages")
-        return len(self._dbManager.query(
-            {
-                "package_name": packageName,
-                "config": self._config.lower(),
-            },
-            returnOne=True)) > 0
+        val = True
+        for config in configs:
+            val = val and (len(self._dbManager.query(
+                {
+                    "package_name": packageName,
+                    "config": config,
+                },
+                returnOne=True)) > 0)
+        return val
 
     def parsePackageFile(self, buildTag, packageFilePath, depsToDownload):
         tree = ET.parse(packageFilePath)
@@ -70,7 +73,10 @@ class MetaBuild(object):
                 packageName = childElement.text
             elif "robos_package_dependency" == childElement.tag:
                 if childElement.text not in self._packages_to_build and\
-                   self.packageAvailable(childElement.text) and childElement not in depsToDownload:
+                   self.packageAvailable(childElement.text,
+                                         ["debug", "release"] if not "configuration" in self._custom_args\
+                                                              else [self._custom_args["configuration"]]) and\
+                   childElement not in depsToDownload:
                     # download this dep
                     depsToDownload[childElement.text] = None
                     packageDeps.append(childElement.text)
@@ -104,6 +110,7 @@ class MetaBuild(object):
         globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, self._config)
         if os.path.exists(globalDepsDir) and len(self._buildGraph._nodeMap) == 0:
             Utilities.rmTree(globalDepsDir)
+        if not os.path.exists(globalDepsDir):
             Utilities.mkdir(globalDepsDir)
         for package in self._globalDeps:
             print("Downloading package [%s]" % package)
@@ -284,7 +291,8 @@ class MetaBuild(object):
         relCMakeProjectDir = os.path.relpath(CMakeProjectDir,
                                              workingDirectory)
 
-        outRoot = FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, node._name)
+        outRoot = os.path.realpath(os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT,
+                                                                        self._config, node._name), ".."))
 
         # projectWorkingDir = getDirectory(FileSystemDirectory.ROOT, self._config, self._project_name)
         installRootDir = FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config,  node._name)
@@ -421,10 +429,10 @@ class MetaBuild(object):
     def coverWindows(self, node, iterations=1, test="OFF"):
         # run opencppcoverage
         # but for now just run the unit tests
-        self.runUnitTests(iterations, test)
+        self.runUnitTests(node, iterations, test)
 
     def coverLinux(self, node, iterations=1, test="OFF", valgrind="OFF"):
-        self.runUnitTests(iterations, test, valgrind)
+        self.runUnitTests(node, iterations, test, valgrind)
         # get cobertura reports from gcovr
         # reportDir = FileSystem.getDirectory(FileSystem.TEST_REPORT_DIR, self._config, self._project_name)
         # sourceRoot = FileSystem.getDirectory(FileSystem.CPP_SOURCE_DIR)

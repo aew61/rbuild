@@ -34,6 +34,8 @@ class DBManager(object):
         results = []
         if returnOne:
             results = [self.collection.find_one(queryParams)]
+            if results = [None]:
+                results = []
         else:
             if sortScheme is not None:
                 results = [x for x in self.collection.find(queryParams).sort(sortScheme)]
