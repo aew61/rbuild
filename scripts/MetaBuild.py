@@ -131,7 +131,7 @@ class MetaBuild(object):
         globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, self._config)
         for name, packageTarGzPath in tmpGlobalDeps.items():
             # open all .tar.gz files and extract contents to that directory
-            packagePath = packagePath.replace(".tar.gz", "")
+            packagePath = packageTarGzPath.replace(".tar.gz", "")
             with tarfile.open(packageTarGzPath, "r:gz") as tarFile:
                 tarFile.extractall(globalDepsDir)
             packageNameAndBuildType, packageDeps, packageInfo =\
