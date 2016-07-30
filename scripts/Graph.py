@@ -21,7 +21,7 @@ class Graph(object):
         self._nodeMap = {}
         self._topologicalOrder = []
 
-    def AddNode(self, name, extraInfo):
+    def AddNode(self, name, incomingEdges=[], outgoingEdges=[], extraInfo={}):
         self._nodeMap[name] = Node(name, extraInfo=extraInfo)
 
     def AddEdge(self, source, destination):
