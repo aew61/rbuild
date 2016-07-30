@@ -3,12 +3,13 @@
 import os
 import platform
 import tarfile
-# import _winreg
+import xml.etree.ElementTree as ET
 
 # PYTHON PROJECT IMPORTS
 import Utilities
 import FileSystem
-import DBManager
+# import DBManager
+import Graph
 # import HTTPRequest
 
 
@@ -27,47 +28,113 @@ class MetaBuild(object):
         self._dbManager = None
         self._httpRequest = None
         self._cover = False
+        self._buildGraph = Graph.Graph()
+        self._globalDeps = {}
+
+    def findProjectsInWorkspace(self):
+        workspaceDir = FileSystem.getDirectory(FileSystem.WORKSPACE_DIR)
+        fullSubDirPath = None
+        packagesToBuild = {}
+        for subdir in os.listdir(workspaceDir):
+            fullSubDirPath = os.path.join(workspaceDir, subdir)
+            if os.path.islink(fullSubDirPath):
+                # handle symbolic link: follow it and continue searching
+                continue
+            else:
+                if os.path.exists(os.path.join(fullSubDirPath, "CMakeLists.txt")) and\
+                   os.path.exists(os.path.join(fullSubDirPath, "package.xml")):
+                    # this directory has a project I assume you want to build
+                    packagesToBuild[subdir] = fullSubDirPath
+        return packagesToBuild
+
+    def packageAvailable(self, packageName):
+        self._dbManager.openCollection("available_packages")
+        return len(self._dbManager.query(
+            {
+                "package_name": packageName,
+                "config": self._config.lower(),
+            },
+            returnOne=True)) > 0
+
+    def parsePackageFile(self, packageFilePath, packagesToBuild, depsToDownload):
+        tree = ET.parse(packageFilePath)
+        root = tree.getroot()
+        packageDict = {}
+        packageName = None
+        packageDeps = []
+        if root.tag != "package":
+            Utilities.failExecution("package file error. Top level tag should be <package>")
+        for childElement in root:
+            # deal with the children. Might as well collect build information about every package here.
+            if "name" == childElement.tag:
+                packageName = childElement.text
+            elif "robos_package_dependency" == childElement.tag:
+                if childElement.text not in packagesToBuild and\
+                   self.packageAvailable(childElement.text) and childElement not in depsToDownload:
+                    # download this dep
+                    depsToDownload[childElement.text] = None
+                    if "externalDeps" not in packageDict:
+                        packageDict["externalDeps"] = [childElement.text]
+                    else:
+                        packageDict["externalDeps"].append(childElement.text)
+                elif childElement.text in packagesToBuild:
+                    packageDeps.append(childElement.text)
+                else:
+                    Utilities.failExecution("Not sure what to do with package dependency: %s." +
+                                            "Cannot download it and it is not present on system")
+            else:
+                packageDict[childElement.tag] = childElement.text
+        if packageName is None:
+            Utilities.failExecution("package.xml found in %s is missing a name tag" % packageFilePath)
+        print("Required packages for project [%s] are %s" % (self._project_name, packageDeps))
+        return packageName, packageDeps, packageDict
+
+    def createGraph(self, packagesToBuild):
+        # need to open all packages.xmls and get the associated data
+        for packageDirName, packagePath in packagesToBuild:
+            packageName, packageDeps, packageInfo =\
+                self.parsePackageFile(os.path.join(packagePath, "package.xml"), packagesToBuild, self._globalDeps)
+            packageInfo["packageMainPath"] = packagePath
+            self._buildGraph.AddNode(packageName, outgoingEdges=packageDeps, extraInfo=packageInfo)
+
+    def loadGlobalPackageDependencies(self):
+        globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, self._config)
+        if os.path.exists(globalDepsDir):
+            Utilities.rmTree(globalDepsDir)
+        Utilities.mkdir(globalDepsDir)
+        for package in self._globalDeps:
+            print("Downloading package [%s]" % package)
+            self._dbManager.openCollection(package)
+            mostRecentRecord = [x for x in self._dbManager.query(
+                {
+                    "config": self._config.lower(),
+                    "OS": platform.system().lower(),
+                },
+                sortScheme="build_num"
+            )][-1]
+            self._httpRequest.download(os.path.join(globalDepsDir, mostRecentRecord["fileName"] +
+                                       mostRecentRecord["filetype"]),
+                                       urlParams=[mostRecentRecord["relativeUrl"]])
+            self._globalDeps[package] = os.path.join(globalDepsDir, mostRecentRecord["fileName"] +
+                                                     mostRecentRecord["filetype"])
 
     # removes previous builds so that this build
     # is a fresh build (on this machine). This
     # guarentees that this build uses the most recent
     # source files.
-    def cleanBuildWorkspace(self):
-        print("Cleaning build directory for project [%s]" % self._project_name)
-        buildDirectory = FileSystem.getDirectory(FileSystem.WORKING, self._config, self._project_name)
+    def cleanBuildWorkspace(self, node):
+        print("Cleaning build directory for project [%s]" % node._name)
+        buildDirectory = FileSystem.getDirectory(FileSystem.WORKING, self._config, node._name)
         if os.path.exists(buildDirectory):
             Utilities.rmTree(buildDirectory)
 
-    def parseDependencyFile(self):
-        dependencyFilePath = os.path.join(FileSystem.getDirectory(FileSystem.DEPENDENCIES), "dependencies.txt")
-        if not os.path.exists(dependencyFilePath):
-            Utilities.failExecution("dependency file [%s] does not exist" % dependencyFilePath)
-        requiredProjects = []
-        with open(dependencyFilePath, 'r') as file:
-            lineNum = 0
-            splitLine = None
-            for line in file:
-                splitLine = line.strip().split(None)
-                if len(splitLine) == 0 or line.startswith('#'):
-                    continue
-                elif len(splitLine) == 1:
-                    requiredProjects.append(splitLine)
-                else:
-                    Utilities.failExecution("Parse error in dependency file [%s] at line [%s]"
-                                            % (dependencyFilePath, lineNum))
-                lineNum += 1
-        print("Required projects for project [%s] are %s" % (self._project_name, requiredProjects))
-        return requiredProjects
-
     def findDependencyVersions(self, requiredProjects):
         projectRecords = []
-        dbManager = None
         buildDepPath = FileSystem.getDirectory(FileSystem.BUILD_DEPENDENCIES, self._config, self._project_name)
         for project in requiredProjects:
-            dbManager = DBManager.DBManager(databaseName=project[0])
-            dbManager.openCollection(self._config.lower())
+            self._dbManager.openCollection(project[0])
             # find correct configuration and version
-            mostRecentVersion = [x for x in dbManager.query(
+            mostRecentVersion = [x for x in self._dbManager.query(
                 {
                     "config": self._config.lower(),
                     "OS": platform.system().lower()
@@ -78,17 +145,17 @@ class MetaBuild(object):
                 projectRecords.append([project[0], mostRecentVersion])
         return projectRecords
 
-    def loadDependencies(self, requiredProjects):
-        dbRecords = self.findDependencyVersions(requiredProjects)
-        buildDepPath = FileSystem.getDirectory(FileSystem.BUILD_DEPENDENCIES, self._config, self._project_name)
+    def loadDependencies(self, node):
+        buildDepPath = FileSystem.getDirectory(FileSystem.BUILD_DEPENDENCIES, self._config, node._name)
+        globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, self._config)
         if not os.path.exists(buildDepPath):
             Utilities.mkdir(buildDepPath)
         binDir = os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT,
-                                                      self._config, self._project_name), "bin")
+                                                      self._config, node._name), "bin")
         libDir = os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT,
-                                                      self._config, self._project_name), "lib")
+                                                      self._config, node._name), "lib")
         outIncludeDir = os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT,
-                                                             self._config, self._project_name), "include")
+                                                             self._config, node._name), "include")
         if not os.path.exists(binDir):
             Utilities.mkdir(binDir)
         if not os.path.exists(libDir):
@@ -96,31 +163,53 @@ class MetaBuild(object):
         if not os.path.exists(outIncludeDir):
             Utilities.mkdir(outIncludeDir)
 
-        for project, record in dbRecords:
-            # load the project
-            self._httpRequest.download(os.path.join(buildDepPath, record["fileName"] + record["filetype"]),
-                                       urlParams=[project, self._config.lower(),
-                                                  record["fileName"] + record["filetype"]])
-            # open the tar.gz file
-            with tarfile.open(os.path.join(buildDepPath, record["fileName"] + record["filetype"]), "r:gz") as tarFile:
+        # copy packages that have already been built locally
+        for package in node._outgoingEdges:
+            # this name is wacky. It refers to the directory where a package that this package is dependent
+            # on stored its .tar.gz file (also called a "package")
+            depPackagePackageDir = FileSystem.getDirectory(FileSystem.PACKAGE, self._config, package)
+            packagePackageName = package + "_" + self._project_build_number + "_" +\
+                self._config.lower() + "_" + platform.system.lower()
+
+            # standardize the process...copy the .tar.gz file, extract, and copy results
+            Utilities.copyTree(os.path.join(depPackagePackageDir,
+                                            packagePackageName + ".tar.gz"), buildDepPath)
+            with tarfile.open(os.path.join(depPackagePackageDir,
+                                           packagePackageName + ".tar.gz"), "r:gz") as tarFile:
                 tarFile.extractall(buildDepPath)
 
             # copy to appropriate directories
-            Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "include", project),
-                               os.path.join(outIncludeDir, project))
+            Utilities.copyTree(os.path.join(buildDepPath, packagePackageName, "include", package),
+                               os.path.join(outIncludeDir, package))
 
             if platform.system() == "Windows":
-                Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "bin"), binDir)
-            Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "lib"), libDir)
-            Utilities.copyTree(os.path.join(buildDepPath, record["fileName"], "cmake"),
+                Utilities.copyTree(os.path.join(buildDepPath, packagePackageName, "bin"), binDir)
+            Utilities.copyTree(os.path.join(buildDepPath, packagePackageName, "lib"), libDir)
+            Utilities.copyTree(os.path.join(buildDepPath, packagePackageName, "cmake"),
                                os.path.join(FileSystem.getDirectory(FileSystem.WORKING), "cmake"))
 
-    def defaultSetupWorkspace(self):
-        print("Setting up workspaces for project [%s]" % self._project_name)
-        self.cleanBuildWorkspace()
-        Utilities.mkdir(FileSystem.getDirectory(FileSystem.WORKING, self._config, self._project_name))
+        # copy packages that were downloaded
+        for package in node._extraInfo["externalDeps"]:
+            packageName = self._globalDeps[package].replace(globalDepsDir, "").replace(".tar.gz", "")
+            with tarfile.open(self._globalDeps[package], "r:gz") as tarFile:
+                tarFile.extractall(globalDepsDir)
+            # copy directories
+            # copy to appropriate directories
+            Utilities.copyTree(os.path.join(globalDepsDir, packageName, "include", package),
+                               os.path.join(outIncludeDir, package))
 
-    def generateProjectVersion(self):
+            if platform.system() == "Windows":
+                Utilities.copyTree(os.path.join(globalDepsDir, packageName, "bin"), binDir)
+            Utilities.copyTree(os.path.join(globalDepsDir, packageName, "lib"), libDir)
+            Utilities.copyTree(os.path.join(globalDepsDir, packageName, "cmake"),
+                               os.path.join(FileSystem.getDirectory(FileSystem.WORKING), "cmake"))
+
+    def defaultSetupWorkspace(self, node):
+        print("Setting up workspaces for project [%s]" % node._name)
+        self.cleanBuildWorkspace(node)
+        Utilities.mkdir(FileSystem.getDirectory(FileSystem.WORKING, self._config, node._name))
+
+    def generateProjectVersion(self, node):
         outIncludeDir = os.path.join(
             FileSystem.getDirectory(FileSystem.OUT_ROOT),
             'include'
@@ -159,33 +248,34 @@ class MetaBuild(object):
 
         return formattedHeader, formattedSrc
 
-    def defaultPreBuild(self):
-        self.defaultSetupWorkspace() if not hasattr(self, "customSetupWorkspace") else self.customSetupWorkspace()
-        self.generateProjectVersion()
+    def defaultPreBuild(self, node):
+        self.defaultSetupWorkspace(node) if not hasattr(self, "customSetupWorkspace")\
+            else self.customSetupWorkspace(node)
+        self.generateProjectVersion(node)
 
-    def getCMakeArgs(self, pathPrefix, workingDirectory, test, logging, python):
-        CMakeProjectDir = "projects"
+    def getCMakeArgs(self, node, pathPrefix, workingDirectory, test, logging, python):
+        CMakeProjectDir = node._extraInfo["packageMainPath"]
         relCMakeProjectDir = os.path.relpath(CMakeProjectDir,
                                              workingDirectory)
 
-        dummyDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name), "dummy")
+        dummyDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, node._name), "dummy")
 
         # projectWorkingDir = getDirectory(FileSystemDirectory.ROOT, self._config, self._project_name)
-        installRootDir = FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config,  self._project_name)
+        installRootDir = FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config,  node._name)
 
         # all of these are relative paths that are used by CMake
         # to place the appropriate build components in the correct
         # directories.
         binDir = os.path.relpath(
-            os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config, self._project_name), "bin"),
+            os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config, node._name), "bin"),
             dummyDir
         )
 
         libDir = os.path.relpath(
-            os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config, self._project_name), "lib"),
+            os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config, node._name), "lib"),
             dummyDir
         )
-        outIncludeDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, self._project_name),
+        outIncludeDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, node._name),
                                      "include")
 
         toolchainDir = os.path.relpath(os.path.join(FileSystem.getDirectory(FileSystem.WORKING),
@@ -242,17 +332,17 @@ class MetaBuild(object):
     # this method will generate documentation
     # of the project. We are using Doxygen
     # to fulfill this.
-    def document(self):
-        print("generating documentation for project [%s]" % self._project_name)
+    def document(self, node):
+        print("generating documentation for project [%s]" % node._name)
 
     # this method will package the project into
     # a gzipped tarball (tar.gz) file.
-    def package(self):
-        print("packaging project [%s]" % self._project_name)
+    def package(self, node):
+        print("packaging project [%s]" % node._name)
         packageDir = FileSystem.getDirectory(FileSystem.PACKAGE,
                                              configuration=self._config,
-                                             projectName=self._project_name)
-        packageFileName = self._project_name + "_" + self._project_build_number +\
+                                             projectName=node._name)
+        packageFileName = node._name + "_" + self._project_build_number +\
             "_" + self._config.lower() + "_%s" % platform.system().lower()
         if os.path.exists(packageDir):
             Utilities.rmTree(packageDir)
@@ -271,14 +361,14 @@ class MetaBuild(object):
                           "w:gz") as tarFile:
             tarFile.add(os.path.join(packageDir, packageFileName), arcname=packageFileName)
 
-    def runUnitTests(self, iterations=1, test="OFF", valgrind="OFF"):
-        print("Running unit tests for project [%s]" % self._project_name)
+    def runUnitTests(self, node, iterations=1, test="OFF", valgrind="OFF"):
+        print("Running unit tests for project [%s]" % node._name)
         if test == "OFF":
-            print("Unit tests disables for project [%s]" % self._project_name)
+            print("Unit tests disables for project [%s]" % node._name)
             return
-        installRoot = FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config,  self._project_name)
+        installRoot = FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config,  node._name)
         args = []
-        testReportDir = FileSystem.getDirectory(FileSystem.TEST_REPORT_DIR, self._config, self._project_name)
+        testReportDir = FileSystem.getDirectory(FileSystem.TEST_REPORT_DIR, self._config, node._name)
         if not os.path.exists(testReportDir):
             Utilities.mkdir(testReportDir)
 
@@ -300,12 +390,12 @@ class MetaBuild(object):
             if iterations > 1:
                 print("\n\n")
 
-    def coverWindows(self, iterations=1, test="OFF"):
+    def coverWindows(self, node, iterations=1, test="OFF"):
         # run opencppcoverage
         # but for now just run the unit tests
         self.runUnitTests(iterations, test)
 
-    def coverLinux(self, iterations=1, test="OFF", valgrind="OFF"):
+    def coverLinux(self, node, iterations=1, test="OFF", valgrind="OFF"):
         self.runUnitTests(iterations, test, valgrind)
         # get cobertura reports from gcovr
         # reportDir = FileSystem.getDirectory(FileSystem.TEST_REPORT_DIR, self._config, self._project_name)
@@ -320,17 +410,17 @@ class MetaBuild(object):
         #                                                          self._project_name + ".coverage_html_report.html")],
         #                 failOnError=True)
 
-    def coverWithUnit(self, iterations=1, test="OFF", valgrind="OFF"):
-        testReportDir = FileSystem.getDirectory(FileSystem.TEST_REPORT_DIR, self._config, self._project_name)
+    def coverWithUnit(self, node, iterations=1, test="OFF", valgrind="OFF"):
+        testReportDir = FileSystem.getDirectory(FileSystem.TEST_REPORT_DIR, self._config, node._name)
         if not os.path.exists(testReportDir):
             Utilities.mkdir(testReportDir)
         if self._cover:
             if platform.system().lower() == "windows":
-                self.coverWindows(iterations, test)
+                self.coverWindows(node, iterations, test)
             else:
-                self.coverLinux(iterations, test, valgrind)
+                self.coverLinux(node, iterations, test, valgrind)
         else:
-            self.runUnitTests(iterations, test, valgrind)
+            self.runUnitTests(node, iterations, test, valgrind)
 
     # executes a particular part of the build process and fails the build
     # if that build step fails.
@@ -364,24 +454,40 @@ class MetaBuild(object):
         if len(buildSteps) == 0:
             buildSteps = self._build_steps
 
-        # run the build for the user specified configuration else run for
-        # all configurations (the user can restrict this to build for
-        # debug or release versions)
-        if "configuration" in self._custom_args:
-            self._config = self._custom_args["configuration"]
-            if self._config != "release" and self._config != "debug":
-                Utilities.failExecution("Unknown configuration [%s]" % self._config)
-            print("\nbuilding configuration [%s]\n" % self._config)
-            self.executeBuildSteps(buildSteps)
-        else:
-            for configuration in self._configurations:
-                print("\nbuilding configuration [%s]\n" % configuration)
-                self._config = configuration
-                self.executeBuildSteps(buildSteps)
+        self.createGraph(self.findProjectsInWorkspace())
+        buildOrder = self._buildGraph.TopologicalSort()
+        self.loadGlobalPackageDependencies()
+        maxPackageLenth = len("---------------------------------------")
+        for packageToBuild in buildOrder:
+            if len(packageToBuild._name) > maxPackageLenth:
+                maxPackageLenth = len(packageToBuild._name)
+        print("-" * (maxPackageLenth + 4))
+        print("| Building Packages in Topological Order: |")
+        print("-" * (maxPackageLenth + 4))
+        for packageToBuild in buildOrder:
+            print("| " + (" " * (maxPackageLenth - len(packageToBuild._name))) + packageToBuild._name + " |")
+        print("-" * (maxPackageLenth + 4))
 
-        print("***********************")
-        print("*   BUILD SUCCESSFUL  *")
-        print("***********************")
+        for packageToBuild in buildOrder:
+            self._custom_args["node"] = packageToBuild
+            # run the build for the user specified configuration else run for
+            # all configurations (the user can restrict this to build for
+            # debug or release versions)
+            if "configuration" in self._custom_args:
+                self._config = self._custom_args["configuration"]
+                if self._config != "release" and self._config != "debug":
+                    Utilities.failExecution("Unknown configuration [%s]" % self._config)
+                print("\nbuilding configuration [%s]\n" % self._config)
+                self.executeBuildSteps(buildSteps)
+            else:
+                for configuration in self._configurations:
+                    print("\nbuilding configuration [%s]\n" % configuration)
+                    self._config = configuration
+                    self.executeBuildSteps(buildSteps)
+
+        print("-----------------------")
+        print("|   BUILD SUCCESSFUL  |")
+        print("-----------------------")
 
     def help(self):
         print("global commands:")

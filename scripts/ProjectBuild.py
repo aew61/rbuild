@@ -17,7 +17,7 @@ class ProjectBuild(MetaBuild):
 
         # we can override member variables defined in GlobalBuildRules
         self._project_name = projectName
-        self._project_namespace = "CWRUBotix"
+        self._project_namespace = "Robos"
         self._project_build_number = "%s.%s.%s.%s" % (
             os.environ["MAJOR_VER"] if os.environ.get("MAJOR_VER") is not None else 0,
             os.environ["MINOR_VER"] if os.environ.get("MINOR_VER") is not None else 0,
@@ -29,14 +29,14 @@ class ProjectBuild(MetaBuild):
             Utilities.failExecution("MONGODB_URI env var not set. Cannot download dependencies")
         if os.environ.get("FILESERVER_URI") is None:
             Utilities.failExecution("FILESERVER_URI env var not set. Cannot download dependencies")
-        self._dbManager = DBManager.DBManager(databaseName=projectName)
+        self._dbManager = DBManager.DBManager(databaseName="packages")
         self._httpRequest = HTTPRequest.HTTPRequest(os.environ["FILESERVER_URI"])
 
     # this method will launch CMake.
     # CMake is handling all of our compiling and linking.
-    def cmake(self, test="OFF", logging="OFF", python="OFF"):
+    def cmake(self, node, test="OFF", logging="OFF", python="OFF"):
         # make directory that CMake will dump output to
-        wd = FileSystem.getDirectory(FileSystem.WORKING, self._config, self._project_name)
+        wd = FileSystem.getDirectory(FileSystem.WORKING, self._config, node._name)
         Utilities.mkdir(wd)
 
         CMakeArgs = self.getCMakeArgs("", wd, test, logging, python)
@@ -49,9 +49,9 @@ class ProjectBuild(MetaBuild):
             CMakeArgs.extend(["-G", "Unix Makefiles"])
             Utilities.PFork(appToExecute="cmake", argsForApp=CMakeArgs, wd=wd, failOnError=True)
 
-    def makeTarget(self, targets):
+    def makeTarget(self, node, targets):
         # make directory that CMake will dump all output to
-        wd = FileSystem.getDirectory(FileSystem.WORKING, self._config, self._project_name)
+        wd = FileSystem.getDirectory(FileSystem.WORKING, self._config, node._name)
 
         if platform.system() == "Windows":
             Utilities.PForkWithVisualStudio(appToExecute="nmake",
@@ -60,8 +60,8 @@ class ProjectBuild(MetaBuild):
         else:
             Utilities.PFork(appToExecute="make", argsForApp=targets, wd=wd, failOnError=True)
 
-    def makeVisualStudioProjects(self, test="OFF", logging="OFF"):
-        wd = FileSystem.getDirectory(FileSystem.VISUAL_STUDIO_ROOT, self._config, self._project_name)
+    def makeVisualStudioProjects(self, node, test="OFF", logging="OFF"):
+        wd = FileSystem.getDirectory(FileSystem.VISUAL_STUDIO_ROOT, self._config, node._name)
         Utilities.mkdir(wd)
         CMakeArgs = self.getCMakeArgs("", wd, test, logging)
         if platform.system() == "Windows":
@@ -71,27 +71,29 @@ class ProjectBuild(MetaBuild):
                                             argsForApp=CMakeArgs,
                                             wd=wd)
 
-    def make(self):
-        self.makeTarget(["all"])
+    def make(self, node):
+        self.makeTarget(node, ["all"])
         if self._installTarget:
-            self.makeTarget(["install"])
+            self.makeTarget(node, ["install"])
 
-    def build(self):
+    def build(self, node):
         print("Building project [%s]" % self._project_name)
         self.executeBuildSteps([self.customPreBuild if hasattr(self, "customPreBuild") else self.defaultPreBuild,
                                 self.cmake, self.make])
 
-    def uploadPackagedVersion(self):
+    def uploadPackagedVersion(self, node):
         if self._project_build_number != "0.0.0.0":
-            print("Uploading project [%s]" % self._project_name)
+            print("Uploading project [%s]" % node._name)
             packageDir = FileSystem.getDirectory(FileSystem.PACKAGE,
                                                  configuration=self._config,
-                                                 projectName=self._project_name)
-            packageFileName = self._project_name + "_" + self._project_build_number +\
+                                                 projectName=node._name)
+            packageFileName = node._name + "_" + self._project_build_number +\
                 "_" + self._config.lower() + "_%s" % platform.system().lower()
             productNumbers = [int(x) for x in self._project_build_number.split(".")]
 
-            self._dbManager.openCollection(self._config.lower())
+            relativeUrl = HTTPRequest.urljoin(node._name, self._config.lower(),
+                                              packageFileName + ".tar.gz")
+            self._dbManager.openCollection(node._name)
             self._dbManager.insert(
                 {
                     "fileName": packageFileName,
@@ -102,11 +104,19 @@ class ProjectBuild(MetaBuild):
                     "build_num": productNumbers[3],
                     "config": self._config.lower(),
                     "OS": platform.system().lower(),
+                    "relativeUrl": relativeUrl,
                 },
                 insertOne=True)
             self._httpRequest.upload(packageDir,
                                      fileName=packageFileName + ".tar.gz",
-                                     urlParams=[self._project_name, self._config.lower()])
+                                     urlParams=[relativeUrl])
+            self._dbManager.openCollection("available_packages")
+            packageDict = {
+                "package_name": node._name,
+                "config": self._config.lower()
+            }
+            if len(self._dbManager.query(packageDict, returnOne=True)) == 0:
+                self._dbManager.insert(packageDict, insertOne=True)
 
     def help(self):
         print("command specific to project [%s]" % self._project_name)
