@@ -352,9 +352,9 @@ class MetaBuild(object):
             Utilities.copyTree(os.path.join(outRoot, outDir), os.path.join(packageDir, packageFileName, outDir))
         Utilities.copyTree(FileSystem.getDirectory(FileSystem.CMAKE_BASE_DIR, projectName=node._name),
                            os.path.join(packageDir, packageFileName, "cmake"))
-        Utilities.copyTree(os.path.join(FileSystem.getDirectory(FileSystem.ROOT), "LICENSE"),
+        Utilities.copyTree(os.path.join(node._extraInfo["packageMainPath"], "LICENSE"),
                            os.path.join(packageDir, packageFileName))
-        Utilities.copyTree(os.path.join(FileSystem.getDirectory(FileSystem.ROOT), "README.md"),
+        Utilities.copyTree(os.path.join(node._extraInfo["packageMainPath"], "README.md"),
                            os.path.join(packageDir, packageFileName))
         Utilities.copyTree(os.path.join(node._extraInfo["packageMainPath"], "package.xml"),
                            os.path.join(packageDeps, packageFileName))
