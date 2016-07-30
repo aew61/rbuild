@@ -30,7 +30,7 @@ class MetaBuild(object):
         self._cover = False
         self._buildGraph = Graph.Graph()
         self._globalDeps = {}
-        self._aggregatedGlobalDeps ={}
+        self._aggregatedGlobalDeps = {}
 
     def findProjectsInWorkspace(self):
         workspaceDir = FileSystem.getDirectory(FileSystem.WORKSPACE_DIR)
