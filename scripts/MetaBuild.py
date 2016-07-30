@@ -356,6 +356,8 @@ class MetaBuild(object):
                            os.path.join(packageDir, packageFileName))
         Utilities.copyTree(os.path.join(FileSystem.getDirectory(FileSystem.ROOT), "README.md"),
                            os.path.join(packageDir, packageFileName))
+        Utilities.copyTree(os.path.join(node._extraInfo["packageMainPath"], "package.xml"),
+                           os.path.join(packageDeps, packageFileName))
 
         with tarfile.open(os.path.join(packageDir, packageFileName + ".tar.gz"),
                           "w:gz") as tarFile:
