@@ -14,12 +14,12 @@ class Node(object):
         self._finishingTime = 0
         self._color = "WHITE"
         self._parent = None
-        self._topologicalOrder = []
 
 
 class Graph(object):
     def __init__(self):
         self._nodeMap = {}
+        self._topologicalOrder = []
 
     def AddNode(self, name, extraInfo):
         self._nodeMap[name] = Node(name, extraInfo=extraInfo)
