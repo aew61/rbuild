@@ -12,9 +12,8 @@ WORKING = 2                 # the absolute path to the build directory of the pr
 #    projects, this script is a good example)
 SCRIPT_ROOT = 3
 
-TOP_LEVEL_BUILD_FILES = 4            # the absolute path to the top level CMAKE directory of the project
 MANUAL_DIR = 5              # the absolute path to the documentation directory of the project
-CPP_SOURCE_DIR = 6          # the absolute path to the top level directory of c++ source directories
+WORKSPACE_DIR = 6          # the absolute path to the top level directory of c++ source directories
 TEST_REPORT_DIR = 7         # the absolute path to the directory containing test reports
 CMAKE_BASE_DIR = 8          # the absolute path to the top level directory of CMAKE utilities
 
@@ -32,7 +31,7 @@ LOG_DIR = 14                # the absolute path to the directory where all log f
 # uses to determine which libraries depend on others. The build system
 # will move these (project) libraries into the currently building project's
 # workspace for linking.
-DEPENDENCIES = 15
+GLOBAL_DEPENDENCIES = 15
 BUILD_DEPENDENCIES = 16
 PACKAGE = 17
 IDE_ROOT = 18
@@ -47,12 +46,10 @@ def getDirectory(directoryEnum, configuration='', projectName=''):
         return os.path.join(getDirectory(ROOT), 'build', configuration, projectName)
     elif directoryEnum == SCRIPT_ROOT:
         return os.path.join(getDirectory(WORKING), 'scripts')
-    elif directoryEnum == TOP_LEVEL_BUILD_FILES:
-        return os.path.join(getDirectory(ROOT), 'projects')
     elif directoryEnum == MANUAL_DIR:
-        return os.path.join(getDirectory(TOP_LEVEL_BUILD_FILES), 'manual')
-    elif directoryEnum == CPP_SOURCE_DIR:
-        return os.path.join(getDirectory(ROOT), 'cpp')
+        return os.path.join(getDirectory(ROOT), 'projects', 'manual')
+    elif directoryEnum == WORKSPACE_DIR:
+        return os.path.join(getDirectory(ROOT), 'workspace')
     elif directoryEnum == TEST_REPORT_DIR:
         return os.path.join(getDirectory(WORKING, configuration, projectName), 'testReports')
     elif directoryEnum == CMAKE_BASE_DIR:
@@ -69,8 +66,8 @@ def getDirectory(directoryEnum, configuration='', projectName=''):
         return os.path.join(getDirectory(OUT_ROOT, configuration, projectName), 'install')
     elif directoryEnum == LOG_DIR:
         return os.path.join(getDirectory(WORKING, configuration, projectName), 'logs')
-    elif directoryEnum == DEPENDENCIES:
-        return os.path.join(getDirectory(TOP_LEVEL_BUILD_FILES), "dependencies")
+    elif directoryEnum == GLOBAL_DEPENDENCIES:
+        return os.path.join(getDirectory(WORKING, configuration), "globalPackageDependencies")
     elif directoryEnum == BUILD_DEPENDENCIES:
         return os.path.join(getDirectory(WORKING, configuration, projectName), "dependencies")
     elif directoryEnum == PACKAGE:
