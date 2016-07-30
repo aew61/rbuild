@@ -39,7 +39,7 @@ class ProjectBuild(MetaBuild):
         wd = FileSystem.getDirectory(FileSystem.WORKING, self._config, node._name)
         Utilities.mkdir(wd)
 
-        CMakeArgs = self.getCMakeArgs("", wd, test, logging, python)
+        CMakeArgs = self.getCMakeArgs(node, "", wd, test, logging, python)
         if platform.system() == "Windows":
             CMakeArgs.extend(["-G", "\"NMake Makefiles\""])
             Utilities.PForkWithVisualStudio(appToExecute="cmake",

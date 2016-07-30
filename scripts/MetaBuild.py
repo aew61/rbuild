@@ -91,7 +91,7 @@ class MetaBuild(object):
 
     def createGraph(self, packagesToBuild):
         # need to open all packages.xmls and get the associated data
-        for packageDirName, packagePath in packagesToBuild:
+        for packageDirName, packagePath in packagesToBuild.items():
             packageName, packageDeps, packageInfo =\
                 self.parsePackageFile(os.path.join(packagePath, "package.xml"), packagesToBuild, self._globalDeps)
             packageInfo["packageMainPath"] = packagePath
@@ -258,7 +258,7 @@ class MetaBuild(object):
         relCMakeProjectDir = os.path.relpath(CMakeProjectDir,
                                              workingDirectory)
 
-        dummyDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, node._name), "dummy")
+        outRoot = FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, node._name)
 
         # projectWorkingDir = getDirectory(FileSystemDirectory.ROOT, self._config, self._project_name)
         installRootDir = FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config,  node._name)
@@ -268,12 +268,12 @@ class MetaBuild(object):
         # directories.
         binDir = os.path.relpath(
             os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config, node._name), "bin"),
-            dummyDir
+            outRoot
         )
 
         libDir = os.path.relpath(
             os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT, self._config, node._name), "lib"),
-            dummyDir
+            outRoot
         )
         outIncludeDir = os.path.join(FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config, node._name),
                                      "include")
@@ -350,7 +350,7 @@ class MetaBuild(object):
         outRoot = FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config)
         for outDir in os.listdir(outRoot):
             Utilities.copyTree(os.path.join(outRoot, outDir), os.path.join(packageDir, packageFileName, outDir))
-        Utilities.copyTree(FileSystem.getDirectory(FileSystem.CMAKE_BASE_DIR, node._name),
+        Utilities.copyTree(FileSystem.getDirectory(FileSystem.CMAKE_BASE_DIR, projectName=node._name),
                            os.path.join(packageDir, packageFileName, "cmake"))
         Utilities.copyTree(os.path.join(FileSystem.getDirectory(FileSystem.ROOT), "LICENSE"),
                            os.path.join(packageDir, packageFileName))
