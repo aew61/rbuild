@@ -350,7 +350,7 @@ class MetaBuild(object):
         outRoot = FileSystem.getDirectory(FileSystem.OUT_ROOT, self._config)
         for outDir in os.listdir(outRoot):
             Utilities.copyTree(os.path.join(outRoot, outDir), os.path.join(packageDir, packageFileName, outDir))
-        Utilities.copyTree(FileSystem.getDirectory(FileSystem.CMAKE_BASE_DIR),
+        Utilities.copyTree(FileSystem.getDirectory(FileSystem.CMAKE_BASE_DIR, node._name),
                            os.path.join(packageDir, packageFileName, "cmake"))
         Utilities.copyTree(os.path.join(FileSystem.getDirectory(FileSystem.ROOT), "LICENSE"),
                            os.path.join(packageDir, packageFileName))

@@ -53,11 +53,11 @@ def getDirectory(directoryEnum, configuration='', projectName=''):
     elif directoryEnum == TEST_REPORT_DIR:
         return os.path.join(getDirectory(WORKING, configuration, projectName), 'testReports')
     elif directoryEnum == CMAKE_BASE_DIR:
-        return os.path.join(getDirectory(ROOT), 'cmake')
+        return os.path.join(getDirectory(WORKSPACE_DIR), projectName, 'cmake')
     elif directoryEnum == CMAKE_TOOLCHAIN_DIR:
-        return os.path.join(getDirectory(CMAKE_BASE_DIR), 'toolchains')
+        return os.path.join(getDirectory(CMAKE_BASE_DIR, projectName), 'toolchains')
     elif directoryEnum == CMAKE_MODULE_DIR:
-        return os.path.join(getDirectory(CMAKE_BASE_DIR), 'modules')
+        return os.path.join(getDirectory(CMAKE_BASE_DIR, projectName), 'modules')
     elif directoryEnum == OUT_ROOT:
         return os.path.join(getDirectory(WORKING, configuration, projectName), 'out')
     elif directoryEnum == INSTALL_ROOT:
