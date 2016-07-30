@@ -56,7 +56,7 @@ class MetaBuild(object):
             },
             returnOne=True)) > 0
 
-    def parsePackageFile(self, packageFilePath, depsToDownload):
+    def parsePackageFile(self, buildTag, packageFilePath, depsToDownload):
         tree = ET.parse(packageFilePath)
         root = tree.getroot()
         packageDict = {}
@@ -73,13 +73,13 @@ class MetaBuild(object):
                    self.packageAvailable(childElement.text) and childElement not in depsToDownload:
                     # download this dep
                     depsToDownload[childElement.text] = None
-                    packageDeps.append([childElement.text, "download"])
+                    packageDeps.append(childElement.text)
                     if "externalDeps" not in packageDict:
                         packageDict["externalDeps"] = [childElement.text]
                     else:
                         packageDict["externalDeps"].append(childElement.text)
                 elif childElement.text in self._packages_to_build:
-                    packageDeps.append([childElement.text, "build"])
+                    packageDeps.append(childElement.text)
                 else:
                     Utilities.failExecution("Not sure what to do with package dependency: %s." +
                                             "Cannot download it and it is not present on system")
@@ -88,13 +88,13 @@ class MetaBuild(object):
         if packageName is None:
             Utilities.failExecution("package.xml found in %s is missing a name tag" % packageFilePath)
         print("Required packages for project [%s] are %s" % (self._project_name, packageDeps))
-        return packageName, packageDeps, packageDict
+        return [packageName, buildTag], packageDeps, packageDict
 
     def createGraph(self):
         # need to open all packages.xmls and get the associated data
         for packageDirName, packagePath in self._packages_to_build.items():
             packageNameAndBuildType, packageDeps, packageInfo =\
-                self.parsePackageFile(os.path.join(packagePath, "package.xml"), self._globalDeps)
+                self.parsePackageFile("local", os.path.join(packagePath, "package.xml"), self._globalDeps)
             packageInfo["packageMainPath"] = packagePath
             packageInfo["buildType"] = packageNameAndBuildType[1]
             self._buildGraph.AddNode(packageNameAndBuildType[0],
@@ -102,9 +102,9 @@ class MetaBuild(object):
 
     def loadGlobalPackageDependencies(self):
         globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, self._config)
-        if os.path.exists(globalDepsDir):
+        if os.path.exists(globalDepsDir) and len(self._buildGraph._nodeMap) == 0:
             Utilities.rmTree(globalDepsDir)
-        Utilities.mkdir(globalDepsDir)
+            Utilities.mkdir(globalDepsDir)
         for package in self._globalDeps:
             print("Downloading package [%s]" % package)
             self._dbManager.openCollection(package)
@@ -135,7 +135,7 @@ class MetaBuild(object):
             with tarfile.open(packageTarGzPath, "r:gz") as tarFile:
                 tarFile.extractall(globalDepsDir)
             packageNameAndBuildType, packageDeps, packageInfo =\
-                self.parsePackageFile(os.path.join(packagePath, "package.xml"), self._globalDeps)
+                self.parsePackageFile("external", os.path.join(packagePath, "package.xml"), self._globalDeps)
             if packageNameAndBuildType[0] not in self._buildGraph._nodeMap:
                 packageInfo["packageMainPath"] = packagePath
                 packageInfo["buildType"] = packageNameAndBuildType[1]
