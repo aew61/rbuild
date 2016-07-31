@@ -93,7 +93,7 @@ class MetaBuild(object):
                     packageDeps.append(childElement.text)
                 else:
                     Utilities.failExecution("Not sure what to do with package dependency: %s." +
-                                            "Cannot download it and it is not present on system")
+                                            "Cannot download it and it is not present on system" % childElement.text)
             else:
                 packageDict[childElement.tag] = childElement.text
         if packageName is None:
