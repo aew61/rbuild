@@ -3,7 +3,7 @@ get_filename_component( CMAKE_GLOBAL_ROOT ${CMAKE_CURRENT_SOURCE_DIR} ABSOLUTE )
 list( APPEND CMAKE_MODULE_PATH ${CMAKE_GLOBAL_ROOT} )
 
 
-include(ProjectLinker2)
+include(ProjectLinker)
 
 
 function( rbuild_add_shared_library SHARED_LIB_NAME SHARED_LIB_SRCS
