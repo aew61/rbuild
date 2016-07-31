@@ -10,12 +10,16 @@ function( rbuild_add_shared_library SHARED_LIB_NAME SHARED_LIB_SRCS
                                     SHARED_LIB_PUBLIC_HEADERS
                                     SHARED_LIB_PRIVATE_HEADERS
                                     COMPILE_DEFINITIONS
-                                    DEPENDENCY_LIST)
+                                    DEPENDENCY_LIST
+                                    INCLUDE_DIRS)
 
     LinkProjects(REQUIRED ${SHARED_LIB_NAME} ${DEPENDENCY_LIST})
+    list( APPEND INCLUDE_DIRS ${${SHARED_LIB_NAME}_INCLUDES} )
 
     # Shared Library export header file supporte
     include( GenerateExportHeader )
+
+    include_directories( ${INCLUDE_DIRS} )
 
     add_library( ${SHARED_LIB_NAME} SHARED ${SHARED_LIB_SRCS}
                                            ${SHARED_LIB_PUBLIC_HEADERS}
@@ -51,9 +55,13 @@ endfunction()
 
 function( rbuild_add_gtest GTEST_EXEC_NAME GTEST_EXEC_SRCS
                            GTEST_EXEC_HEADERS
-                           DEPENDENCY_LIST)
+                           DEPENDENCY_LIST
+                           INCLUDE_DIRS)
     enable_testing()
     LinkProjects(REQUIRED ${GTEST_EXEC_NAME} ${DEPENDENCY_LIST})
+    list( APPEND INCLUDE_DIRS ${${SHARED_LIB_NAME}_INCLUDES} )
+
+    include_directories( ${INCLUDE_DIRS} )
 
     if( MSVC )
         include( GNUInstallDirs )
