@@ -509,9 +509,9 @@ class MetaBuild(object):
 
         self._packages_to_build = self.findProjectsInWorkspace()
         self.createGraph()
-        print("---------------------------------------")
-        print("   Downloading all external packages   ")
-        print("---------------------------------------")
+        print("+-------------------------------------+")
+        print("|  Downloading all external packages  |")
+        print("+-------------------------------------+")
         if config is not None:
             self.loadGlobalPackageDependencies(config)
             while(self.continueLoadingDependencies(config)):
