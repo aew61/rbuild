@@ -31,6 +31,7 @@ class MetaBuild(object):
         self._buildGraph = Graph.Graph()
         self._globalDeps = {}
         self._aggregatedGlobalDeps = {}
+        self._finalizeDepList = False
 
     def findProjectsInWorkspace(self):
         workspaceDir = FileSystem.getDirectory(FileSystem.WORKSPACE_DIR)
@@ -59,6 +60,7 @@ class MetaBuild(object):
                     "OS": platform.system().lower(),
                 },
                 returnOne=True)) > 0)
+        print("package [%s] are available for configs %s!: %s" % (packageName, configs, val))
         return val
 
     def parsePackageFile(self, buildTag, packageFilePath, depsToDownload):
@@ -76,7 +78,7 @@ class MetaBuild(object):
             elif "robos_package_dependency" == childElement.tag:
                 if childElement.text not in self._packages_to_build and\
                    self.packageAvailable(childElement.text,
-                                         ["debug", "release"] if not "configuration" not in self._custom_args
+                                         ["debug", "release"] if "configuration" not in self._custom_args
                                          else [self._custom_args["configuration"]]) and\
                    childElement not in depsToDownload:
                     # download this dep
@@ -109,18 +111,19 @@ class MetaBuild(object):
             self._buildGraph.AddNode(packageNameAndBuildType[0],
                                      outgoingEdges=packageDeps, extraInfo=packageInfo)
 
-    def loadGlobalPackageDependencies(self):
-        globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, self._config)
+    def loadGlobalPackageDependencies(self, config):
+        print("loading global packages")
+        globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, config)
         if os.path.exists(globalDepsDir) and len(self._buildGraph._nodeMap) == 0:
             Utilities.rmTree(globalDepsDir)
         if not os.path.exists(globalDepsDir):
             Utilities.mkdir(globalDepsDir)
-        for package in self._globalDeps:
-            print("Downloading package [%s]" % package)
+        for package in (self._globalDeps if not self._finalizeDepList else self._aggregatedGlobalDeps):
+            print("Resolving dependency [%s] for [%s]" % (package, config)),
             self._dbManager.openCollection(package)
             mostRecentRecord = [x for x in self._dbManager.query(
                 {
-                    "config": self._config.lower(),
+                    "config": config.lower(),
                     "OS": platform.system().lower(),
                 },
                 sortScheme="build_num"
@@ -128,10 +131,10 @@ class MetaBuild(object):
             self._httpRequest.download(os.path.join(globalDepsDir, mostRecentRecord["fileName"] +
                                        mostRecentRecord["filetype"]),
                                        urlParams=[mostRecentRecord["relativeUrl"]])
-            self._globalDeps[package] = os.path.join(globalDepsDir, mostRecentRecord["fileName"] +
-                                                     mostRecentRecord["filetype"])
+            self._globalDeps[package] = mostRecentRecord["fileName"].replace(config.lower(), "%c") +\
+                mostRecentRecord["filetype"]
 
-    def continueLoadingDependencies(self):
+    def continueLoadingDependencies(self, config):
         # parse downloaded packages.xml files and determine if there are unresolved dependencies.
         # return True if there are more dependencies to download or False if all requirements
         # are met.
@@ -140,8 +143,9 @@ class MetaBuild(object):
             self._aggregatedGlobalDeps = self._globalDeps
         tmpGlobalDeps = self._globalDeps
         self._globalDeps = {}
-        globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, self._config)
-        for name, packageTarGzPath in tmpGlobalDeps.items():
+        globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, config)
+        for name, packageTarGzName in tmpGlobalDeps.items():
+            packageTarGzPath = os.path.join(globalDepsDir, packageTarGzName).replace("%c", config.lower())
             # open all .tar.gz files and extract contents to that directory
             packagePath = packageTarGzPath.replace(".tar.gz", "")
             with tarfile.open(packageTarGzPath, "r:gz") as tarFile:
@@ -231,18 +235,21 @@ class MetaBuild(object):
 
         # copy packages that were downloaded
         for package in node._extraInfo["externalDeps"]:
-            packageName = self._aggregatedGlobalDeps[package].replace(globalDepsDir, "").replace(".tar.gz", "")[1:]
-            with tarfile.open(self._aggregatedGlobalDeps[package], "r:gz") as tarFile:
+            packageTarGZPath = os.path.join(globalDepsDir,
+                                            self._aggregatedGlobalDeps[package].replace("%c",
+                                                                                        self._config.lower()))
+            extractedPackagePath = packageTarGZPath.replace(".tar.gz", "")
+            with tarfile.open(packageTarGZPath, "r:gz") as tarFile:
                 tarFile.extractall(globalDepsDir)
             # copy directories
             # copy to appropriate directories
-            Utilities.copyTree(os.path.join(globalDepsDir, packageName, "include", package),
+            Utilities.copyTree(os.path.join(extractedPackagePath, "include", package),
                                os.path.join(outIncludeDir, package))
 
             if platform.system() == "Windows":
-                Utilities.copyTree(os.path.join(globalDepsDir, packageName, "bin"), binDir)
-            Utilities.copyTree(os.path.join(globalDepsDir, packageName, "lib"), libDir)
-            Utilities.copyTree(os.path.join(globalDepsDir, packageName, "cmake"),
+                Utilities.copyTree(os.path.join(extractedPackagePath, "bin"), binDir)
+            Utilities.copyTree(os.path.join(extractedPackagePath, "lib"), libDir)
+            Utilities.copyTree(os.path.join(extractedPackagePath, "cmake"),
                                os.path.join(FileSystem.getDirectory(FileSystem.WORKING), "cmake"))
 
     def defaultSetupWorkspace(self, node):
@@ -255,7 +262,6 @@ class MetaBuild(object):
             FileSystem.getDirectory(FileSystem.OUT_ROOT),
             'include'
         )
-        print("making directory %s" % outIncludeDir)
         Utilities.mkdir(outIncludeDir)
         with open(os.path.join(outIncludeDir, 'Version.hpp'), 'w') as file:
             file.write("#pragma once\n"
@@ -378,7 +384,7 @@ class MetaBuild(object):
     # this method will package the project into
     # a gzipped tarball (tar.gz) file.
     def package(self, node):
-        print("making package [%s]" % node._name)
+        print("packaging package [%s]" % node._name)
         packageDir = FileSystem.getDirectory(FileSystem.PACKAGE,
                                              configuration=self._config,
                                              projectName=node._name)
@@ -491,6 +497,11 @@ class MetaBuild(object):
         # this build MUST have a project name to run
         if self._project_name == "":
             Utilities.failExecution("Project name not set")
+        config = None
+        if "configuration" in self._custom_args:
+            config = self._custom_args["configuration"].lower()
+            if config != "release" and config != "debug":
+                Utilities.failExecution("Unknown configuration [%s]" % config)
 
         # if the user has not specified any build steps, run the default
         if len(buildSteps) == 0:
@@ -498,29 +509,39 @@ class MetaBuild(object):
 
         self._packages_to_build = self.findProjectsInWorkspace()
         self.createGraph()
+        print("---------------------------------------")
+        print("   Downloading all external packages   ")
+        print("---------------------------------------")
+        if config is not None:
+            self.loadGlobalPackageDependencies(config)
+            while(self.continueLoadingDependencies(config)):
+                self.loadGlobalPackageDependencies(config)
+        else:
+            for defaultConfig in self._configurations:
+                self.loadGlobalPackageDependencies(defaultConfig)
+            if not self._finalizeDepList:
+                while(self.continueLoadingDependencies(defaultConfig)):
+                    self.loadGlobalPackageDependencies(defaultConfig)
+            self._finalizeDepList = True
+
         buildOrder = self._buildGraph.TopologicalSort()
         maxPackageLenth = len("---------------------------------------")
         for packageToBuild in buildOrder:
             if len(packageToBuild._name) > maxPackageLenth:
                 maxPackageLenth = len(packageToBuild._name)
-        print("-" * (maxPackageLenth + 4))
+        print("+" + "-" * (maxPackageLenth + 2) + "+")
         print("| Building Packages in Topological Order: |")
-        print("-" * (maxPackageLenth + 4))
+        print("+" + "-" * (maxPackageLenth + 2) + "+")
         for packageToBuild in buildOrder:
             print("| " + (" " * (maxPackageLenth - len(packageToBuild._name))) + packageToBuild._name + " |")
-        print("-" * (maxPackageLenth + 4))
+        print("+" + "-" * (maxPackageLenth + 2) + "+")
 
         # run the build for the user specified configuration else run for
         # all configurations (the user can restrict this to build for
         # debug or release versions)
-        if "configuration" in self._custom_args:
-            self._config = self._custom_args["configuration"]
-            if self._config != "release" and self._config != "debug":
-                Utilities.failExecution("Unknown configuration [%s]" % self._config)
+        if config is not None:
+            self._config = config
             print("\nbuilding configuration [%s]\n" % self._config)
-            self.loadGlobalPackageDependencies()
-            while(self.continueLoadingDependencies()):
-                self.loadGlobalPackageDependencies()
             for packageToBuild in buildOrder:
                 self._custom_args["node"] = packageToBuild
                 self.executeBuildSteps(buildSteps)
@@ -528,16 +549,13 @@ class MetaBuild(object):
             for configuration in self._configurations:
                 print("\nbuilding configuration [%s]\n" % configuration)
                 self._config = configuration
-                self.loadGlobalPackageDependencies()
-                while(self.continueLoadingDependencies()):
-                    self.loadGlobalPackageDependencies()
                 for packageToBuild in buildOrder:
                     self._custom_args["node"] = packageToBuild
                     self.executeBuildSteps(buildSteps)
 
-        print("-----------------------")
+        print("+---------------------+")
         print("|   BUILD SUCCESSFUL  |")
-        print("-----------------------")
+        print("+---------------------+")
 
     def help(self):
         print("global commands:")

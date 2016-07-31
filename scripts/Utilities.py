@@ -18,7 +18,9 @@ def failExecution(errorMsg):
     print("Failed Build Stack:")
     traceback.print_stack(file=sys.stdout)
 
-    print("********************\n*   BUILD FAILED   * %s\n********************\n" % errorMsg)
+    print("+------------------+")
+    print("|   BUILD FAILED   | %s" % errorMsg)
+    print("+------------------+")
     sys.exit(1)
 
 
