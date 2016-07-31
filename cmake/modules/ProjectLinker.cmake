@@ -13,11 +13,13 @@ function(LinkProjects Requirement project_name )
             list( APPEND ${project_name}_INCLUDES ${${ProjectToLinkUpper}_INCLUDES} )
 
             # add an imported library.
-            add_library( ${ProjectToLinkUpper}_LIB_VAR SHARED IMPORTED )
+            if( NOT TARGET ${ProjectToLinkUpper}_LIB_VAR )
+                add_library( ${ProjectToLinkUpper}_LIB_VAR SHARED IMPORTED )
 
-            # will set .so for unix systems and .dll for windows
-            set_property( TARGET ${ProjectToLinkUpper}_LIB_VAR PROPERTY
-                          IMPORTED_LOCATION ${${ProjectToLinkUpper}_SHARED_LIB} )
+                # will set .so for unix systems and .dll for windows
+                set_property( TARGET ${ProjectToLinkUpper}_LIB_VAR PROPERTY
+                              IMPORTED_LOCATION ${${ProjectToLinkUpper}_SHARED_LIB} )
+            endif()
 
             # need to link to .lib files for windows
             if( ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
