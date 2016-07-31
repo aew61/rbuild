@@ -86,12 +86,10 @@ function( rbuild_add_gtest GTEST_EXEC_NAME GTEST_EXEC_SRCS
 
     string( TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER )
     if( CMAKE_BUILD_TYPE_LOWER STREQUAL "debug" )
-        message( "Linking executable for Debug" )
         target_link_libraries( ${GTEST_EXEC_NAME}
             ${TARGET_PTHREADS_LIB}
         )
     else()
-        message( "Linking executable for Release" )
         target_link_libraries( ${GTEST_EXEC_NAME}
             ${TARGET_PTHREADS_LIB}
         )
