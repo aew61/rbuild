@@ -59,7 +59,7 @@ function( rbuild_add_gtest GTEST_EXEC_NAME GTEST_EXEC_SRCS
                            INCLUDE_DIRS)
     enable_testing()
     LinkProjects(REQUIRED ${GTEST_EXEC_NAME} ${DEPENDENCY_LIST})
-    list( APPEND INCLUDE_DIRS ${${SHARED_LIB_NAME}_INCLUDES} )
+    list( APPEND INCLUDE_DIRS ${${GTEST_EXEC_NAME}_INCLUDES} )
 
     include_directories( ${INCLUDE_DIRS} )
 
