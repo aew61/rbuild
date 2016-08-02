@@ -31,7 +31,6 @@ class MetaBuild(object):
         self._buildGraph = Graph.Graph()
         self._globalDeps = {}
         self._aggregatedGlobalDeps = {}
-        self._finalizeDepList = False
 
     def findProjectsInWorkspace(self):
         workspaceDir = FileSystem.getDirectory(FileSystem.WORKSPACE_DIR)
@@ -108,15 +107,15 @@ class MetaBuild(object):
             self._buildGraph.AddNode(packageNameAndBuildType[0],
                                      outgoingEdges=packageDeps, extraInfo=packageInfo)
 
-    def loadGlobalPackageDependencies(self, config):
+    def loadGlobalPackageDependencies(self):
         print("loading global packages")
         globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES)
         if os.path.exists(globalDepsDir) and len(self._buildGraph._nodeMap) == 0:
             Utilities.rmTree(globalDepsDir)
         if not os.path.exists(globalDepsDir):
             Utilities.mkdir(globalDepsDir)
-        for package in (self._globalDeps if not self._finalizeDepList else self._aggregatedGlobalDeps):
-            print("Resolving dependency [%s] for [%s]" % (package, config)),
+        for package in self._globalDeps:
+            print("Resolving dependency [%s]" % package),
             self._dbManager.openCollection(package)
             mostRecentRecord = [x for x in self._dbManager.query(
                 {
@@ -130,7 +129,7 @@ class MetaBuild(object):
                                        urlParams=[mostRecentRecord["relativeUrl"]])
             self._globalDeps[package] = mostRecentRecord["fileName"] + mostRecentRecord["filetype"]
 
-    def continueLoadingDependencies(self, config):
+    def continueLoadingDependencies(self):
         # parse downloaded packages.xml files and determine if there are unresolved dependencies.
         # return True if there are more dependencies to download or False if all requirements
         # are met.
@@ -506,17 +505,9 @@ class MetaBuild(object):
         print("+-------------------------------------+")
         print("|  Downloading all external packages  |")
         print("+-------------------------------------+")
-        if config is not None:
-            self.loadGlobalPackageDependencies(config)
-            while(self.continueLoadingDependencies(config)):
-                self.loadGlobalPackageDependencies(config)
-        else:
-            for defaultConfig in self._configurations:
-                self.loadGlobalPackageDependencies(defaultConfig)
-            if not self._finalizeDepList:
-                while(self.continueLoadingDependencies(defaultConfig)):
-                    self.loadGlobalPackageDependencies(defaultConfig)
-            self._finalizeDepList = True
+        self.loadGlobalPackageDependencies()
+        while(self.continueLoadingDependencies()):
+            self.loadGlobalPackageDependencies()
 
         buildOrder = self._buildGraph.TopologicalSort()
         maxPackageLenth = len("---------------------------------------")
