@@ -52,13 +52,10 @@ endfunction()
 
 function( rbuild_add_gtest GTEST_EXEC_NAME GTEST_EXEC_SRCS
                            GTEST_EXEC_HEADERS
-                           DEPENDENCY_LIST
-                           INCLUDE_DIRS)
+                           DEPENDENCY_LIST)
     enable_testing()
     LinkProjects(REQUIRED ${GTEST_EXEC_NAME} ${DEPENDENCY_LIST})
-    list( APPEND INCLUDE_DIRS ${${GTEST_EXEC_NAME}_INCLUDES} )
-
-    include_directories( ${INCLUDE_DIRS} )
+    include_directories( ${${GTEST_EXEC_NAME}_INCLUDES} )
 
     if( MSVC )
         include( GNUInstallDirs )
