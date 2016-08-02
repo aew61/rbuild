@@ -5,34 +5,39 @@ function(LinkProjects Requirement project_name )
     # set( ${PROJECT_NAME}_IMPORTED_LIBS )
     foreach( ProjectToLink ${ARGN} )
         string( TOUPPER ${ProjectToLink} ProjectToLinkUpper )
-        find_package( ${ProjectToLink} ${Requirement} )
 
-        # if the library was found. We assume that
-        if( ${ProjectToLinkUpper}_FOUND )
+        if( NOT TARGET ${ProjectToLinkUpper}_LIB )
+            find_package( ${ProjectToLink} ${Requirement} )
 
-            list( APPEND ${project_name}_INCLUDES ${${ProjectToLinkUpper}_INCLUDES} )
+            # if the library was found. We assume that
+            if( ${ProjectToLinkUpper}_FOUND )
 
-            # add an imported library.
-            # if( NOT TARGET ${ProjectToLinkUpper}_LIB_VAR )
-            #     add_library( ${ProjectToLinkUpper}_LIB_VAR SHARED IMPORTED )
+                list( APPEND ${project_name}_INCLUDES ${${ProjectToLinkUpper}_INCLUDES} )
+
+                # add an imported library.
+                # if( NOT TARGET ${ProjectToLinkUpper}_LIB_VAR )
+                #     add_library( ${ProjectToLinkUpper}_LIB_VAR SHARED IMPORTED )
 
                 # will set .so for unix systems and .dll for windows
-            #     set_property( TARGET ${ProjectToLinkUpper}_LIB_VAR PROPERTY
-            #                   IMPORTED_LOCATION ${${ProjectToLinkUpper}_SHARED_LIB} )
-            # endif()
+                #     set_property( TARGET ${ProjectToLinkUpper}_LIB_VAR PROPERTY
+                #                   IMPORTED_LOCATION ${${ProjectToLinkUpper}_SHARED_LIB} )
+                # endif()
 
-            # need to link to .lib files for windows
-            # if( ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
-            #     set_property( TARGET ${ProjectToLinkUpper}_LIB_VAR PROPERTY
-            #                   IMPORTED_IMPLIB ${${ProjectToLinkUpper}_LIB} )
-                # message("${ProjectToLink} IMPORTED_LIBRARY: ${${ProjectToLinkUpper}_SHARED_LIB}")
-                # message("${ProjectToLink} STATIC LIBRARY: ${${ProjectToLinkUpper}_LIB}")
-            # endif( ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
+                # need to link to .lib files for windows
+                # if( ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
+                #     set_property( TARGET ${ProjectToLinkUpper}_LIB_VAR PROPERTY
+                #                   IMPORTED_IMPLIB ${${ProjectToLinkUpper}_LIB} )
+                    # message("${ProjectToLink} IMPORTED_LIBRARY: ${${ProjectToLinkUpper}_SHARED_LIB}")
+                    # message("${ProjectToLink} STATIC LIBRARY: ${${ProjectToLinkUpper}_LIB}")
+                # endif( ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
 
-            # list( APPEND ${project_name}_IMPORTED_LIBS ${ProjectToLinkUpper}_LIB_VAR )
-            list( APPEND ${project_name}_IMPORTED_LIBS ${ProjectToLinkUpper}_LIB )
+                # list( APPEND ${project_name}_IMPORTED_LIBS ${ProjectToLinkUpper}_LIB_VAR )
+                list( APPEND ${project_name}_IMPORTED_LIBS ${ProjectToLinkUpper}_LIB )
+            else()
+                message( FATAL_ERROR "${ProjectToLink} not found" )
+            endif()
         else()
-            message( FATAL_ERROR "${ProjectToLink} not found" )
+            list( APPEND ${project_name}_IMPORTED_LIBS ${ProjectToLinkUpper}_LIB )
         endif()
     endforeach()
 
