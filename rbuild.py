@@ -94,7 +94,7 @@ if __name__ == "__main__":
                                    os.environ["MINOR_VER"] if os.environ.get("MINOR_VER") is not None else 0,
                                    os.environ["PATCH"] if os.environ.get("PATCH") is not None else 0,
                                    os.environ["BUILD_NUMBER"] if os.environ.get("BUILD_NUMBER") is not None else 0)
-    tarFileName = "BuildScripts_%s_src" % buildString
+    tarFileName = "rbuild_%s_src" % buildString
     # bundle all directories and files into a tar.gz file and upload to share
     with tarfile.open(tarFileName + ".tar.gz", "w:gz") as tarFile:
         for item in os.listdir(currentDir):
@@ -106,7 +106,7 @@ if __name__ == "__main__":
         productNumbers = [int(x) for x in buildString.split(".")]
         # upload to database
         client = pymongo.MongoClient(os.environ["MONGODB_URI"])
-        db = client["BuildScripts"]
+        db = client["rbuild"]
         collection = db["src"]
         collection.insert_one(
             {
@@ -120,11 +120,11 @@ if __name__ == "__main__":
             })
 
         # try to post file to file server
-        response = requests.post(urljoin(os.environ["FILESERVER_URI"], "BuildScripts/"),
+        response = requests.post(urljoin(os.environ["FILESERVER_URI"], "rbuild/"),
                                  files={"upload_file": open(tarFileName + ".tar.gz", "rb")},
                                  auth=requests.auth.HTTPBasicAuth(os.environ["DBFILESERVER_USERNAME"],
                                                                   os.environ["DBFILESERVER_PASSWORD"]))
         if response.status_code != 200:
             failExecution("Error %s uploading %s to %s" % (response.status_code,
                                                            tarFileName,
-                                                           os.environ["FILESERVER_URI"] + "BuildScripts/"))
+                                                           os.environ["FILESERVER_URI"] + "rbuild/"))
