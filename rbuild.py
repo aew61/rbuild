@@ -98,7 +98,7 @@ if __name__ == "__main__":
     # bundle all directories and files into a tar.gz file and upload to share
     with tarfile.open(tarFileName + ".tar.gz", "w:gz") as tarFile:
         for item in os.listdir(currentDir):
-            if item != "RobosBuild.py" and "readme" not in item.lower() and not item.startswith("."):
+            if item != "rbuild.py" and "readme" not in item.lower() and not item.startswith("."):
                 tarFile.add(item)
 
     # upload tarFile to shared directory

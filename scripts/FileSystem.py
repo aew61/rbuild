@@ -67,7 +67,7 @@ def getDirectory(directoryEnum, configuration='', projectName=''):
     elif directoryEnum == LOG_DIR:
         return os.path.join(getDirectory(WORKING, configuration, projectName), 'logs')
     elif directoryEnum == GLOBAL_DEPENDENCIES:
-        return os.path.join(getDirectory(WORKING, configuration), "globalPackageDependencies")
+        return os.path.join(getDirectory(WORKING), "globalPackageDependencies")
     elif directoryEnum == BUILD_DEPENDENCIES:
         return os.path.join(getDirectory(WORKING, configuration, projectName), "dependencies")
     elif directoryEnum == PACKAGE:

@@ -76,9 +76,7 @@ class MetaBuild(object):
                 packageName = childElement.text
             elif "robos_package_dependency" == childElement.tag:
                 if childElement.text not in self._packages_to_build and\
-                   self.packageAvailable(childElement.text,
-                                         ["debug", "release"] if "configuration" not in self._custom_args
-                                         else [self._custom_args["configuration"]]) and\
+                   self.packageAvailable(childElement.text, ["release"]) and\
                    childElement not in depsToDownload:
                     # download this dep
                     print("appending package [%s] for download" % childElement.text)
@@ -91,8 +89,8 @@ class MetaBuild(object):
                 elif childElement.text in self._packages_to_build:
                     packageDeps.append(childElement.text)
                 else:
-                    Utilities.failExecution("Not sure what to do with package dependency: %s." +
-                                            "Cannot download it and it is not present on system" % childElement.text)
+                    Utilities.failExecution(("Not sure what to do with package dependency: %s. " +
+                                            "Cannot download it and it is not present on system") % childElement.text)
             else:
                 packageDict[childElement.tag] = childElement.text
         if packageName is None:
@@ -112,7 +110,7 @@ class MetaBuild(object):
 
     def loadGlobalPackageDependencies(self, config):
         print("loading global packages")
-        globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, config)
+        globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES)
         if os.path.exists(globalDepsDir) and len(self._buildGraph._nodeMap) == 0:
             Utilities.rmTree(globalDepsDir)
         if not os.path.exists(globalDepsDir):
@@ -122,7 +120,7 @@ class MetaBuild(object):
             self._dbManager.openCollection(package)
             mostRecentRecord = [x for x in self._dbManager.query(
                 {
-                    "config": config.lower(),
+                    "config": "release",
                     "OS": platform.system().lower(),
                 },
                 sortScheme="build_num"
@@ -130,8 +128,7 @@ class MetaBuild(object):
             self._httpRequest.download(os.path.join(globalDepsDir, mostRecentRecord["fileName"] +
                                        mostRecentRecord["filetype"]),
                                        urlParams=[mostRecentRecord["relativeUrl"]])
-            self._globalDeps[package] = mostRecentRecord["fileName"].replace(config.lower(), "%c") +\
-                mostRecentRecord["filetype"]
+            self._globalDeps[package] = mostRecentRecord["fileName"] + mostRecentRecord["filetype"]
 
     def continueLoadingDependencies(self, config):
         # parse downloaded packages.xml files and determine if there are unresolved dependencies.
@@ -142,9 +139,9 @@ class MetaBuild(object):
             self._aggregatedGlobalDeps = self._globalDeps
         tmpGlobalDeps = self._globalDeps
         self._globalDeps = {}
-        globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, config)
+        globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES)
         for name, packageTarGzName in tmpGlobalDeps.items():
-            packageTarGzPath = os.path.join(globalDepsDir, packageTarGzName).replace("%c", config.lower())
+            packageTarGzPath = os.path.join(globalDepsDir, packageTarGzName)
             # open all .tar.gz files and extract contents to that directory
             packagePath = packageTarGzPath.replace(".tar.gz", "")
             with tarfile.open(packageTarGzPath, "r:gz") as tarFile:
@@ -191,7 +188,7 @@ class MetaBuild(object):
 
     def loadDependencies(self, node):
         buildDepPath = FileSystem.getDirectory(FileSystem.BUILD_DEPENDENCIES, self._config, node._name)
-        globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES, self._config)
+        globalDepsDir = FileSystem.getDirectory(FileSystem.GLOBAL_DEPENDENCIES)
         if not os.path.exists(buildDepPath):
             Utilities.mkdir(buildDepPath)
         binDir = os.path.join(FileSystem.getDirectory(FileSystem.INSTALL_ROOT,
@@ -234,9 +231,7 @@ class MetaBuild(object):
 
         # copy packages that were downloaded
         for package in node._extraInfo["externalDeps"]:
-            packageTarGZPath = os.path.join(globalDepsDir,
-                                            self._aggregatedGlobalDeps[package].replace("%c",
-                                                                                        self._config.lower()))
+            packageTarGZPath = os.path.join(globalDepsDir, self._aggregatedGlobalDeps[package])
             extractedPackagePath = packageTarGZPath.replace(".tar.gz", "")
             with tarfile.open(packageTarGZPath, "r:gz") as tarFile:
                 tarFile.extractall(globalDepsDir)
