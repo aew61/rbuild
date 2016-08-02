@@ -60,7 +60,6 @@ class MetaBuild(object):
                     "OS": platform.system().lower(),
                 },
                 returnOne=True)) > 0)
-        print("package [%s] are available for configs %s!: %s" % (packageName, configs, val))
         return val
 
     def parsePackageFile(self, buildTag, packageFilePath, depsToDownload):
