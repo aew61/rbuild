@@ -76,7 +76,7 @@ class MetaBuild(object):
             elif "robos_package_dependency" == childElement.tag:
                 if childElement.text not in self._packages_to_build and\
                    self.packageAvailable(childElement.text, ["release"]) and\
-                   childElement not in depsToDownload:
+                   childElement.text not in depsToDownload and childElement.text not in self._aggregatedGlobalDeps:
                     # download this dep
                     print("appending package [%s] for download" % childElement.text)
                     depsToDownload[childElement.text] = None
@@ -87,6 +87,8 @@ class MetaBuild(object):
                         packageDict["externalDeps"].append(childElement.text)
                 elif childElement.text in self._packages_to_build:
                     packageDeps.append(childElement.text)
+                elif childElement.text in self._aggregatedGlobalDeps:
+                    continue
                 else:
                     Utilities.failExecution(("Not sure what to do with package dependency: %s. " +
                                             "Cannot download it and it is not present on system") % childElement.text)
@@ -94,7 +96,7 @@ class MetaBuild(object):
                 packageDict[childElement.tag] = childElement.text
         if packageName is None:
             Utilities.failExecution("package.xml found in %s is missing a name tag" % packageFilePath)
-        print("Required packages for package [%s] are %s" % (packageName, packageDeps))
+        print("required packages not present for package [%s] are %s" % (packageName, packageDeps))
         return [packageName, buildTag], packageDeps, packageDict
 
     def createGraph(self):
@@ -127,13 +129,14 @@ class MetaBuild(object):
             self._httpRequest.download(os.path.join(globalDepsDir, mostRecentRecord["fileName"] +
                                        mostRecentRecord["filetype"]),
                                        urlParams=[mostRecentRecord["relativeUrl"]])
+            self._aggregatedGlobalDeps[package] = mostRecentRecord["fileName"] + mostRecentRecord["filetype"]
             self._globalDeps[package] = mostRecentRecord["fileName"] + mostRecentRecord["filetype"]
 
     def continueLoadingDependencies(self):
         # parse downloaded packages.xml files and determine if there are unresolved dependencies.
         # return True if there are more dependencies to download or False if all requirements
         # are met.
-        numDeps = len(self._buildGraph._nodeMap)
+        numDeps = len(self._aggregatedGlobalDeps)
         if numDeps > 0 and len(self._aggregatedGlobalDeps) == 0:
             self._aggregatedGlobalDeps = self._globalDeps
         tmpGlobalDeps = self._globalDeps
@@ -156,7 +159,7 @@ class MetaBuild(object):
         for newPackageDep in self._globalDeps.keys():
             if newPackageDep not in self._aggregatedGlobalDeps:
                 self._aggregatedGlobalDeps[newPackageDep] = self._globalDeps[newPackageDep]
-        return len(self._buildGraph._nodeMap) > numDeps
+        return len(self._aggregatedGlobalDeps) > numDeps
 
     # removes previous builds so that this build
     # is a fresh build (on this machine). This
