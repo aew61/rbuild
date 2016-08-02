@@ -13,23 +13,24 @@ function(LinkProjects Requirement project_name )
             list( APPEND ${project_name}_INCLUDES ${${ProjectToLinkUpper}_INCLUDES} )
 
             # add an imported library.
-            if( NOT TARGET ${ProjectToLinkUpper}_LIB_VAR )
-                add_library( ${ProjectToLinkUpper}_LIB_VAR SHARED IMPORTED )
+            # if( NOT TARGET ${ProjectToLinkUpper}_LIB_VAR )
+            #     add_library( ${ProjectToLinkUpper}_LIB_VAR SHARED IMPORTED )
 
                 # will set .so for unix systems and .dll for windows
-                set_property( TARGET ${ProjectToLinkUpper}_LIB_VAR PROPERTY
-                              IMPORTED_LOCATION ${${ProjectToLinkUpper}_SHARED_LIB} )
-            endif()
+            #     set_property( TARGET ${ProjectToLinkUpper}_LIB_VAR PROPERTY
+            #                   IMPORTED_LOCATION ${${ProjectToLinkUpper}_SHARED_LIB} )
+            # endif()
 
             # need to link to .lib files for windows
-            if( ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
-                set_property( TARGET ${ProjectToLinkUpper}_LIB_VAR PROPERTY
-                              IMPORTED_IMPLIB ${${ProjectToLinkUpper}_LIB} )
+            # if( ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
+            #     set_property( TARGET ${ProjectToLinkUpper}_LIB_VAR PROPERTY
+            #                   IMPORTED_IMPLIB ${${ProjectToLinkUpper}_LIB} )
                 # message("${ProjectToLink} IMPORTED_LIBRARY: ${${ProjectToLinkUpper}_SHARED_LIB}")
                 # message("${ProjectToLink} STATIC LIBRARY: ${${ProjectToLinkUpper}_LIB}")
-            endif( ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
+            # endif( ${CMAKE_SYSTEM_NAME} MATCHES "Windows" )
 
-            list( APPEND ${project_name}_IMPORTED_LIBS ${ProjectToLinkUpper}_LIB_VAR )
+            # list( APPEND ${project_name}_IMPORTED_LIBS ${ProjectToLinkUpper}_LIB_VAR )
+            list( APPEND ${project_name}_IMPORTED_LIBS ${ProjectToLinkUpper}_LIB )
         else()
             message( FATAL_ERROR "${ProjectToLink} not found" )
         endif()
