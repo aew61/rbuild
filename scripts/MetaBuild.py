@@ -420,14 +420,14 @@ class MetaBuild(object):
             print("Running unit tests [%s/%s]" % (iteration, iterations))
             for testToRun in self._tests_to_run:
                 executablePath = os.path.join(installRoot, "bin", testToRun)
-                args = [executablePath]  # , "--gtest_output=xml:%s.JUnit.xml" % os.path.join(testReportDir, testToRun)]
+                args = ["--gtest_output=xml:%s.JUnit.xml" % os.path.join(testReportDir, testToRun)]
                 if platform.system() == "Windows":
                     executablePath += ".exe"
                 else:
                     if mem_check != "OFF":
-                        args = ['valgrind', '--leak-check=yes'] + args
+                        args = ['valgrind', '--leak-check=yes', executablePath] + args
                 if os.path.exists(executablePath):
-                    Utilities.PFork(appToExecute=(executablePath if args == [] else ""),
+                    Utilities.PFork(appToExecute=(executablePath if executablePath not in args else ""),
                                     argsForApp=args, failOnError=True)
                 else:
                     print("%s does NOT exist!" % executablePath)
