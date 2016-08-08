@@ -425,10 +425,9 @@ class MetaBuild(object):
                     executablePath += ".exe"
                 else:
                     if mem_check != "OFF":
-                        args = ['--leak-check=yes', executablePath] + args
-                        executablePath = "valgrind"
+                        args = ['valgrind', '--leak-check=yes', executablePath] + args
                 if os.path.exists(executablePath):
-                    Utilities.PFork(appToExecute=executablePath,
+                    Utilities.PFork(appToExecute=(executablePath if executablePath not in args else None),
                                     argsForApp=args, failOnError=True)
                 else:
                     print("%s does NOT exist!" % executablePath)
