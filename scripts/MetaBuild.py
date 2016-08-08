@@ -405,7 +405,7 @@ class MetaBuild(object):
                           "w:gz") as tarFile:
             tarFile.add(os.path.join(packageDir, packageFileName), arcname=packageFileName)
 
-    def runUnitTests(self, node, iterations=1, test="OFF", valgrind="OFF"):
+    def runUnitTests(self, node, iterations=1, test="OFF", mem_check="OFF"):
         print("Running unit tests for package [%s]" % node._name)
         if test == "OFF":
             print("Unit tests disables for package [%s]" % node._name)
@@ -424,7 +424,7 @@ class MetaBuild(object):
                 if platform.system() == "Windows":
                     executablePath += ".exe"
                 else:
-                    if valgrind == "ON":
+                    if mem_check != "OFF":
                         args = ['valgrind', '--leak-check=yes', executablePath]
                 if os.path.exists(executablePath):
                     Utilities.PFork(appToExecute=executablePath,
@@ -439,8 +439,8 @@ class MetaBuild(object):
         # but for now just run the unit tests
         self.runUnitTests(node, iterations, test)
 
-    def coverLinux(self, node, iterations=1, test="OFF", valgrind="OFF"):
-        self.runUnitTests(node, iterations, test, valgrind)
+    def coverLinux(self, node, iterations=1, test="OFF", mem_check="OFF"):
+        self.runUnitTests(node, iterations, test, mem_check)
         # get cobertura reports from gcovr
         # reportDir = FileSystem.getDirectory(FileSystem.TEST_REPORT_DIR, self._config, self._project_name)
         # sourceRoot = FileSystem.getDirectory(FileSystem.CPP_SOURCE_DIR)
@@ -454,7 +454,7 @@ class MetaBuild(object):
         #                                                          self._project_name + ".coverage_html_report.html")],
         #                 failOnError=True)
 
-    def coverWithUnit(self, node, iterations=1, test="OFF", valgrind="OFF"):
+    def coverWithUnit(self, node, iterations=1, test="OFF", mem_check="OFF"):
         testReportDir = FileSystem.getDirectory(FileSystem.TEST_REPORT_DIR, self._config, node._name)
         if not os.path.exists(testReportDir):
             Utilities.mkdir(testReportDir)
@@ -462,9 +462,9 @@ class MetaBuild(object):
             if platform.system().lower() == "windows":
                 self.coverWindows(node, iterations, test)
             else:
-                self.coverLinux(node, iterations, test, valgrind)
+                self.coverLinux(node, iterations, test, mem_check)
         else:
-            self.runUnitTests(node, iterations, test, valgrind)
+            self.runUnitTests(node, iterations, test, mem_check)
 
     # executes a particular part of the build process and fails the build
     # if that build step fails.
