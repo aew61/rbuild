@@ -420,7 +420,7 @@ class MetaBuild(object):
             print("Running unit tests [%s/%s]" % (iteration, iterations))
             for testToRun in self._tests_to_run:
                 executablePath = os.path.join(installRoot, "bin", testToRun)
-                args = [executablePath]#, "--gtest_output=xml:%s.JUnit.xml" % os.path.join(testReportDir, testToRun)]
+                args = [executablePath]  # , "--gtest_output=xml:%s.JUnit.xml" % os.path.join(testReportDir, testToRun)]
                 if platform.system() == "Windows":
                     executablePath += ".exe"
                 else:
