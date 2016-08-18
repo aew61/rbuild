@@ -26,7 +26,7 @@ function( rbuild_add_shared_library SHARED_LIB_NAME SHARED_LIB_SRCS
     endif()
 
     set_target_properties( ${SHARED_LIB_NAME} PROPERTIES
-        PUBLIC_HEADER       "${SHARED_LIB_PUBLIC_HEADERS}"
+        # PUBLIC_HEADER       "${SHARED_LIB_PUBLIC_HEADERS}"
         COMPILE_DEFINITIONS "${COMPILE_DEFINITIONS}"
         SOVERSION           "${PROJECT_VERSION_MAJOR}"
         VERSION             "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}"
@@ -37,8 +37,15 @@ function( rbuild_add_shared_library SHARED_LIB_NAME SHARED_LIB_SRCS
              RUNTIME        DESTINATION ${CMAKE_INSTALL_BINDIR}
              LIBRARY        DESTINATION ${CMAKE_INSTALL_LIBDIR}
              ARCHIVE        DESTINATION ${CMAKE_INSTALL_LIBDIR}
-             PUBLIC_HEADER  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${SHARED_LIB_NAME}
+             # PUBLIC_HEADER  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${SHARED_LIB_NAME}
     )
+
+    # preserve directory structure
+    foreach( file ${SHARED_LIB_PUBLIC_HEADERS})
+        string( REGEX REPLACE ".*/${SHARED_LIB_NAME}/" "" relFPath ${file} )
+        get_filename_component( relDir ${relFPath} DIRECTORY )
+        install( FILES ${file} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${SHARED_LIB_NAME}/${relDir} )
+    endforeach()
 
     if( MSVC )
         get_filename_component( PDB_DIR ${CMAKE_PREFIX_PATH}/../../${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ABSOLUTE )
