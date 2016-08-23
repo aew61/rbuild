@@ -115,7 +115,7 @@ class ProjectBuild(MetaBuild):
                 }
             self._httpRequest.upload(packageDir,
                                      "packages",
-                                     node._name
+                                     node._name,
                                      fileName=packageFileName + ".tar.gz",
                                      dbParams=dbParams,
                                      urlParams=[node._name, self._config.lower()])
