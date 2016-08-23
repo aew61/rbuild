@@ -112,10 +112,10 @@ class ProjectBuild(MetaBuild):
                     "config": self._config.lower(),
                     "OS": platform.system().lower(),
                     "relativeUrl": relativeUrl,
-                    "dbName": "packages",
-                    "collectionName": node._name
                 }
             self._httpRequest.upload(packageDir,
+                                     "packages",
+                                     node._name
                                      fileName=packageFileName + ".tar.gz",
                                      dbParams=dbParams,
                                      urlParams=[node._name, self._config.lower()])
