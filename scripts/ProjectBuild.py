@@ -29,7 +29,7 @@ class ProjectBuild(MetaBuild):
             Utilities.failExecution("MONGODB_URI env var not set. Cannot download dependencies")
         if os.environ.get("FILESERVER_URI") is None:
             Utilities.failExecution("FILESERVER_URI env var not set. Cannot download dependencies")
-        self._dbManager = DBManager.DBManager(databaseName="packages")
+        # self._dbManager = DBManager.DBManager(databaseName="packages")
         self._httpRequest = HTTPRequest.HTTPRequest(os.environ["FILESERVER_URI"])
 
     # this method will launch CMake.
