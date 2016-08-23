@@ -105,7 +105,7 @@ class HTTPRequest(object):
             print("Download done")
         return requestData
 
-    def upload(self, filePath, fileName="", dbParams={}, urlParams=[]):
+    def upload(self, filePath, dbName, collectionName, fileName="", dbParams={}, urlParams=[]):
         fullFilePath = None
         url = None
         if fileName == "":
@@ -121,12 +121,9 @@ class HTTPRequest(object):
         else:
             url = urljoin(self.baseUrl, *urlParams)
 
-        finalDBParams = {}
-        for key in dbParams.keys():
-            if key != "collectionName" or key != "dbName":
-                finalDBParams["dbkey_%s" % key] = dbParams[key]
-            else:
-                finalDBParams[key] = dbParams[key]
+        finalDBParams = {"dbkey_%s" % key: dbParams[key] for key in dbParams.keys()}
+        finalDBParams["dbName"] = dbName
+        finalDBParams["collectionName"] = collectionName
         # to post, do I have to add "/post" to the end of the url?
         response = requests.request("QUERY_POST", url, files={"upload_file": open(fullFilePath, 'rb')},
                                     data=finalDBParams, auth=requests.auth.HTTPBasicAuth(self.user, self.pswrd))
