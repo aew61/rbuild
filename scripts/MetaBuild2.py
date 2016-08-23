@@ -25,7 +25,7 @@ class MetaBuild(object):
         self._configurations = ["debug", "release"]
         self._build_directory = FileSystem.getDirectory(FileSystem.WORKING)
         self._tests_to_run = []
-        # self._dbManager = None
+        self._dbManager = None
         self._httpRequest = None
         self._cover = False
         self._buildGraph = Graph.Graph()
@@ -49,16 +49,16 @@ class MetaBuild(object):
         return packagesToBuild
 
     def packageAvailable(self, packageName, configs):
-        # self._dbManager.openCollection("available_packages")
+        self._dbManager.openCollection("available_packages")
         val = True
         for config in configs:
-            val = val and (len(self._httpRequest.query("packages",
-                "available_packages",
-                dbParams = {
+            val = val and (len(self._dbManager.query(
+                {
                     "package_name": packageName,
                     "config": config,
                     "OS": platform.system().lower(),
-                })) > 0)
+                },
+                returnOne=True)) > 0)
         return val
 
     def parsePackageFile(self, buildTag, packageFilePath, depsToDownload):
@@ -116,23 +116,19 @@ class MetaBuild(object):
             Utilities.rmTree(globalDepsDir)
         if not os.path.exists(globalDepsDir):
             Utilities.mkdir(globalDepsDir)
-        def hook(records):
-            return [sorted(records, key=lambda record: record["build_num"])[-1]]
         for package in self._globalDeps:
             print("Resolving dependency [%s]" % package),
-            # self._dbManager.openCollection(package)
-            mostRecentRecord = self._httpRequest.download(globalDepsDir, "packages",
-                package,
-                dbParams={
+            self._dbManager.openCollection(package)
+            mostRecentRecord = [x for x in self._dbManager.query(
+                {
                     "config": "release",
                     "OS": platform.system().lower(),
                 },
-                keysToKeep=["build_num"],
-                hook=hook
-            )[0]
-            # self._httpRequest.download(os.path.join(globalDepsDir, mostRecentRecord["fileName"] +
-            #                            mostRecentRecord["filetype"]),
-            #                            urlParams=[mostRecentRecord["relativeUrl"]])
+                sortScheme="build_num"
+            )][-1]
+            self._httpRequest.download(os.path.join(globalDepsDir, mostRecentRecord["fileName"] +
+                                       mostRecentRecord["filetype"]),
+                                       urlParams=[mostRecentRecord["relativeUrl"]])
             self._aggregatedGlobalDeps[package] = mostRecentRecord["fileName"] + mostRecentRecord["filetype"]
             self._globalDeps[package] = mostRecentRecord["fileName"] + mostRecentRecord["filetype"]
 
@@ -179,19 +175,15 @@ class MetaBuild(object):
         projectRecords = []
         buildDepPath = FileSystem.getDirectory(FileSystem.BUILD_DEPENDENCIES, self._config, self._project_name)
         for project in requiredProjects:
-            # self._dbManager.openCollection(project[0])
-            def hook(records):
-                return sorted(records, key=lambda record: record["build_num"])
+            self._dbManager.openCollection(project[0])
             # find correct configuration and version
-            mostRecentVersion = self._httpRequest.query("packages",
-                project[0],
-                dbParams = {
+            mostRecentVersion = [x for x in self._dbManager.query(
+                {
                     "config": self._config.lower(),
                     "OS": platform.system().lower()
                 },
-                keysToKeep=["build_num"],
-                hook=hook
-            )[-1]
+                sortScheme="build_num"
+            )][-1]
             if not os.path.exists(os.path.join(buildDepPath, mostRecentVersion["fileName"])):
                 projectRecords.append([project[0], mostRecentVersion])
         return projectRecords

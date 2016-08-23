@@ -1,7 +1,7 @@
 # SYSTEM IMPORTS
 import os
 # import platform
-import pymongo
+# import pymongo
 import requests
 import shutil
 import subprocess
@@ -102,9 +102,10 @@ if __name__ == "__main__":
                 tarFile.add(item)
 
     # upload tarFile to shared directory
-    if buildString != "0.0.0.0":
+    if buildString == "0.0.0.0":
         productNumbers = [int(x) for x in buildString.split(".")]
-        # upload to database
+        '''
+        upload to database
         client = pymongo.MongoClient(os.environ["MONGODB_URI"])
         db = client["rbuild"]
         collection = db["src"]
@@ -124,7 +125,25 @@ if __name__ == "__main__":
                                  files={"upload_file": open(tarFileName + ".tar.gz", "rb")},
                                  auth=requests.auth.HTTPBasicAuth(os.environ["DBFILESERVER_USERNAME"],
                                                                   os.environ["DBFILESERVER_PASSWORD"]))
+        '''
+        data = {
+            "dbkey_fileName": tarFileName,
+            "dbkey_filetype": ".tar.gz",
+            "dbkey_major_version": productNumbers[0],
+            "dbkey_minor_version": productNumbers[1],
+            "dbkey_patch": productNumbers[2],
+            "dbkey_build_num": productNumbers[3],
+            "dbkey_config": "src",
+            "dbName": "rbuild",
+            "collectionName": "src"
+        }
+        response = requests.request("QUERY_POST", urljoin(os.environ["FILESERVER_URI"], "rbuild/"),
+                                    files={"upload_file": open(tarFileName + ".tar.gz", "rb")},
+                                    data=data,
+                                    auth=requests.auth.HTTPBasicAuth(os.environ["DBFILESERVER_USERNAME"],
+                                                                     os.environ["DBFILESERVER_PASSWORD"]))
         if response.status_code != 200:
-            failExecution("Error %s uploading %s to %s" % (response.status_code,
-                                                           tarFileName,
-                                                           os.environ["FILESERVER_URI"] + "rbuild/"))
+            failExecution("Error %s uploading %s to %s: %s" % (response.status_code,
+                                                               tarFileName,
+                                                               os.environ["FILESERVER_URI"] + "rbuild/",
+                                                               response.content))
