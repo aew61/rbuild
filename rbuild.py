@@ -102,7 +102,7 @@ if __name__ == "__main__":
                 tarFile.add(item)
 
     # upload tarFile to shared directory
-    if buildString == "0.0.0.0":
+    if buildString != "0.0.0.0":
         productNumbers = [int(x) for x in buildString.split(".")]
         '''
         upload to database
