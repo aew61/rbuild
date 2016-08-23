@@ -40,7 +40,6 @@ class HTTPRequest(object):
                (key == "relativeUrl" or key == "fileName" or key == "filetype") and key != "_id":
                 returnDict[key] = self.parseValue(value.strip())
 
-        
         return returnDict
 
     def parseQueryData(self, marshalledQueryData, keysToKeep, keysToIgnore):
@@ -54,9 +53,9 @@ class HTTPRequest(object):
         return parsedQueryData
 
     def query(self, dbName, collectionName, dbParams={}, keysToKeep=[], keysToIgnore=[], hook=None):
-        auth=requests.auth.HTTPBasicAuth(self.user, self.pswrd)
+        auth = requests.auth.HTTPBasicAuth(self.user, self.pswrd)
 
-        finalDBParams = {("dbkey_%s" % key) : dbParams[key] for key in dbParams.keys()}
+        finalDBParams = {("dbkey_%s" % key): dbParams[key] for key in dbParams.keys()}
         finalDBParams["dbName"] = dbName
         finalDBParams["collectionName"] = collectionName
         queryResponse = requests.request("QUERY", self.baseUrl, data=finalDBParams, auth=auth)
@@ -77,7 +76,7 @@ class HTTPRequest(object):
             url = self.baseUrl
         else:
             url = urljoin(self.baseUrl, *urlParams)
-        auth=requests.auth.HTTPBasicAuth(self.user, self.pswrd)
+        auth = requests.auth.HTTPBasicAuth(self.user, self.pswrd)
 
         requestData = self.query(dbName, collectionName, dbParams=dbParams,
                                  keysToKeep=keysToKeep, keysToIgnore=keysToIgnore, hook=hook)

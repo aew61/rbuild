@@ -52,13 +52,13 @@ class MetaBuild(object):
         # self._dbManager.openCollection("available_packages")
         val = True
         for config in configs:
-            val = val and (len(self._httpRequest.query("packages",
-                "available_packages",
-                dbParams = {
-                    "package_name": packageName,
-                    "config": config,
-                    "OS": platform.system().lower(),
-                })) > 0)
+            dbParams = {
+                "package_name": packageName,
+                "config": config,
+                "OS": platform.system().lower(),
+            }
+            val = val and (len(self._httpRequest.query("packages", "available_packages",
+                                                       dbParams=dbParams)) > 0)
         return val
 
     def parsePackageFile(self, buildTag, packageFilePath, depsToDownload):
@@ -116,20 +116,20 @@ class MetaBuild(object):
             Utilities.rmTree(globalDepsDir)
         if not os.path.exists(globalDepsDir):
             Utilities.mkdir(globalDepsDir)
+
         def hook(records):
             return [sorted(records, key=lambda record: record["build_num"])[-1]]
+
         for package in self._globalDeps:
             print("Resolving dependency [%s]" % package),
             # self._dbManager.openCollection(package)
+            dbParams = {
+                "config": "release",
+                "OS": platform.system().lower(),
+            }
             mostRecentRecord = self._httpRequest.download(globalDepsDir, "packages",
-                package,
-                dbParams={
-                    "config": "release",
-                    "OS": platform.system().lower(),
-                },
-                keysToKeep=["build_num"],
-                hook=hook
-            )[0]
+                                                          package, dbParams=dbParams,
+                                                          keysToKeep=["build_num"], hook=hook)[0]
             # self._httpRequest.download(os.path.join(globalDepsDir, mostRecentRecord["fileName"] +
             #                            mostRecentRecord["filetype"]),
             #                            urlParams=[mostRecentRecord["relativeUrl"]])
@@ -180,18 +180,17 @@ class MetaBuild(object):
         buildDepPath = FileSystem.getDirectory(FileSystem.BUILD_DEPENDENCIES, self._config, self._project_name)
         for project in requiredProjects:
             # self._dbManager.openCollection(project[0])
+
             def hook(records):
                 return sorted(records, key=lambda record: record["build_num"])
+
             # find correct configuration and version
-            mostRecentVersion = self._httpRequest.query("packages",
-                project[0],
-                dbParams = {
-                    "config": self._config.lower(),
-                    "OS": platform.system().lower()
-                },
-                keysToKeep=["build_num"],
-                hook=hook
-            )[-1]
+            dbParams = {
+                "config": self._config.lower(),
+                "OS": platform.system().lower(),
+            }
+            mostRecentVersion = self._httpRequest.query("packages", project[0], dbParams=dbParams,
+                                                        keysToKeep=["build_num"], hook=hook)[-1]
             if not os.path.exists(os.path.join(buildDepPath, mostRecentVersion["fileName"])):
                 projectRecords.append([project[0], mostRecentVersion])
         return projectRecords
