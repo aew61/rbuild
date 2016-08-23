@@ -118,7 +118,7 @@ class MetaBuild(object):
             Utilities.mkdir(globalDepsDir)
 
         def hook(records):
-            return [sorted(records, key=lambda record: record["build_num"])[-1]]
+            return [sorted(records, key=lambda record: int(record["build_num"]))[-1]]
 
         for package in self._globalDeps:
             print("Resolving dependency [%s]" % package),
@@ -182,7 +182,7 @@ class MetaBuild(object):
             # self._dbManager.openCollection(project[0])
 
             def hook(records):
-                return sorted(records, key=lambda record: record["build_num"])
+                return sorted(records, key=lambda record: int(record["build_num"]))
 
             # find correct configuration and version
             dbParams = {

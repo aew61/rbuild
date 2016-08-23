@@ -93,9 +93,16 @@ class ProjectBuild(MetaBuild):
 
             relativeUrl = HTTPRequest.urljoin(node._name, self._config.lower(),
                                               packageFileName + ".tar.gz")
-            self._dbManager.openCollection(node._name)
-            self._dbManager.insert(
-                {
+            # self._dbManager.openCollection(node._name)
+            # self._dbManager.insert(
+            dbParams = {}
+            queryParams = {
+                "package_name": node._name,
+                "config": self._config.lower(),
+                "OS": platform.system().lower(),
+            }
+            if len(self._httpRequest.query("packages", "available_packages", dbParams=queryParams)) > 0:
+                dbParams = {
                     "fileName": packageFileName,
                     "filetype": ".tar.gz",
                     "major_version": productNumbers[0],
@@ -105,19 +112,21 @@ class ProjectBuild(MetaBuild):
                     "config": self._config.lower(),
                     "OS": platform.system().lower(),
                     "relativeUrl": relativeUrl,
-                },
-                insertOne=True)
+                    "dbName": "packages",
+                    "collectionName": node._name
+                }
             self._httpRequest.upload(packageDir,
                                      fileName=packageFileName + ".tar.gz",
+                                     dbParams=dbParams,
                                      urlParams=[node._name, self._config.lower()])
-            self._dbManager.openCollection("available_packages")
-            packageDict = {
-                "package_name": node._name,
-                "config": self._config.lower(),
-                "OS": platform.system().lower(),
-            }
-            if len(self._dbManager.query(packageDict, returnOne=True)) == 0:
-                self._dbManager.insert(packageDict, insertOne=True)
+            # self._dbManager.openCollection("available_packages")
+            # packageDict = {
+            #     "package_name": node._name,
+            #     "config": self._config.lower(),
+            #     "OS": platform.system().lower(),
+            # }
+            # if len(self._dbManager.query(packageDict, returnOne=True)) == 0:
+            #     self._dbManager.insert(packageDict, insertOne=True)
 
     def help(self):
         print("command specific to project [%s]" % self._project_name)
