@@ -45,6 +45,7 @@ class DBManager(object):
             return hook(results)
         return results
 
+    # foo
     def insert(self, data, insertOne=False):
         if insertOne:
             self.collection.insert_one(data)
