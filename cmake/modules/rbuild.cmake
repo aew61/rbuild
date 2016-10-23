@@ -57,12 +57,11 @@ function( rbuild_add_shared_library SHARED_LIB_NAME SHARED_LIB_SRCS
 endfunction()
 
 
-function( rbuild_add_gtest GTEST_EXEC_NAME GTEST_EXEC_SRCS
-                           GTEST_EXEC_HEADERS
-                           DEPENDENCY_LIST)
-    enable_testing()
-    LinkProjects(REQUIRED ${GTEST_EXEC_NAME} ${DEPENDENCY_LIST})
-    include_directories( ${${GTEST_EXEC_NAME}_INCLUDES} )
+function( rbuild_add_executable EXECUTABLE_NAME EXECUTABLE_SRCS
+                                EXECUTABLE_HEADERS EXECUTABLE_COMPILE_DEFS,
+                                DEPENDENCY_LIST)
+    LinkProjects(REQUIRED ${EXECUTABLE_NAME} ${DEPENDENCY_LIST})
+    include_directories( ${${EXECUTABLE_NAME}_INCLUDES} )
 
     if( MSVC )
         include( GNUInstallDirs )
@@ -80,9 +79,9 @@ function( rbuild_add_gtest GTEST_EXEC_NAME GTEST_EXEC_SRCS
         message(SEND_ERROR "OS [${CMAKE_SYSTEM_NAME}] not supported")
     endif()
 
-    add_executable( ${GTEST_EXEC_NAME} ${GTEST_EXEC_SRCS} ${GTEST_EXEC_HEADERS} )
-    if( ${${GTEST_EXEC_NAME}_IMPORTED_LIBS_LENGTH} GREATER 0 )
-        target_link_libraries( ${GTEST_EXEC_NAME} ${${GTEST_EXEC_NAME}_IMPORTED_LIBS} )
+    add_executable( ${EXECUTABLE_NAME} ${EXECUTABLE_SRCS} ${EXECUTABLE_HEADERS} )
+    if( ${${EXECUTABLE_NAME}_IMPORTED_LIBS_LENGTH} GREATER 0 )
+        target_link_libraries( ${GTEST_EXEC_NAME} ${${EXECUTABLE_NAME}_IMPORTED_LIBS} )
     endif()
 
     string( TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER )
@@ -95,5 +94,18 @@ function( rbuild_add_gtest GTEST_EXEC_NAME GTEST_EXEC_SRCS
             ${TARGET_PTHREADS_LIB}
         )
     endif()
+
+endfunction()
+
+
+function( rbuild_add_gtest GTEST_EXEC_NAME GTEST_EXEC_SRCS
+                           GTEST_EXEC_HEADERS
+                           DEPENDENCY_LIST)
+    enable_testing()
+    rbuild_add_executable( ${GTEST_EXEC_NAME}
+                           "${GTEST_EXEC_SRCS}"
+                           "${GTEST_EXEC_HEADERS}"
+                           ""
+                           "${DEPENDENCY_LIST}" )
 
 endfunction()
