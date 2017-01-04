@@ -25,8 +25,8 @@ class ProjectBuild(MetaBuild):
             os.environ["BUILD_NUMBER"] if os.environ.get("BUILD_NUMBER") is not None else 0
         )
         self._installTarget = True
-        if os.environ.get("MONGODB_URI") is None:
-            Utilities.failExecution("MONGODB_URI env var not set. Cannot download dependencies")
+        # if os.environ.get("MONGODB_URI") is None:
+        #     Utilities.failExecution("MONGODB_URI env var not set. Cannot download dependencies")
         if os.environ.get("FILESERVER_URI") is None:
             Utilities.failExecution("FILESERVER_URI env var not set. Cannot download dependencies")
         # self._dbManager = DBManager.DBManager(databaseName="packages")
