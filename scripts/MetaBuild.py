@@ -151,7 +151,26 @@ class MetaBuild(object):
             # open all .tar.gz files and extract contents to that directory
             packagePath = packageTarGzPath.replace(".tar.gz", "")
             with tarfile.open(packageTarGzPath, "r:gz") as tarFile:
-                tarFile.extractall(globalDepsDir)
+                def is_within_directory(directory, target):
+                    
+                    abs_directory = os.path.abspath(directory)
+                    abs_target = os.path.abspath(target)
+                
+                    prefix = os.path.commonprefix([abs_directory, abs_target])
+                    
+                    return prefix == abs_directory
+                
+                def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+                
+                    for member in tar.getmembers():
+                        member_path = os.path.join(path, member.name)
+                        if not is_within_directory(path, member_path):
+                            raise Exception("Attempted Path Traversal in Tar File")
+                
+                    tar.extractall(path, members, numeric_owner) 
+                    
+                
+                safe_extract(tarFile, globalDepsDir)
             packageNameAndBuildType, packageDeps, packageInfo =\
                 self.parsePackageFile("external", os.path.join(packagePath, "package.xml"), self._globalDeps)
             if packageNameAndBuildType[0] not in self._buildGraph._nodeMap:
@@ -226,7 +245,26 @@ class MetaBuild(object):
                                             packagePackageName + ".tar.gz"), buildDepPath)
             with tarfile.open(os.path.join(depPackagePackageDir,
                                            packagePackageName + ".tar.gz"), "r:gz") as tarFile:
-                tarFile.extractall(buildDepPath)
+                def is_within_directory(directory, target):
+                    
+                    abs_directory = os.path.abspath(directory)
+                    abs_target = os.path.abspath(target)
+                
+                    prefix = os.path.commonprefix([abs_directory, abs_target])
+                    
+                    return prefix == abs_directory
+                
+                def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+                
+                    for member in tar.getmembers():
+                        member_path = os.path.join(path, member.name)
+                        if not is_within_directory(path, member_path):
+                            raise Exception("Attempted Path Traversal in Tar File")
+                
+                    tar.extractall(path, members, numeric_owner) 
+                    
+                
+                safe_extract(tarFile, buildDepPath)
 
             # copy to appropriate directories
             Utilities.copyTree(os.path.join(buildDepPath, packagePackageName, "include", package),
@@ -243,7 +281,26 @@ class MetaBuild(object):
             packageTarGZPath = os.path.join(globalDepsDir, self._aggregatedGlobalDeps[package])
             extractedPackagePath = packageTarGZPath.replace(".tar.gz", "")
             with tarfile.open(packageTarGZPath, "r:gz") as tarFile:
-                tarFile.extractall(globalDepsDir)
+                def is_within_directory(directory, target):
+                    
+                    abs_directory = os.path.abspath(directory)
+                    abs_target = os.path.abspath(target)
+                
+                    prefix = os.path.commonprefix([abs_directory, abs_target])
+                    
+                    return prefix == abs_directory
+                
+                def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+                
+                    for member in tar.getmembers():
+                        member_path = os.path.join(path, member.name)
+                        if not is_within_directory(path, member_path):
+                            raise Exception("Attempted Path Traversal in Tar File")
+                
+                    tar.extractall(path, members, numeric_owner) 
+                    
+                
+                safe_extract(tarFile, globalDepsDir)
             # copy directories
             # copy to appropriate directories
             Utilities.copyTree(os.path.join(extractedPackagePath, "include", package),
