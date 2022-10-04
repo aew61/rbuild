@@ -167,7 +167,7 @@ class MetaBuild(object):
                         if not is_within_directory(path, member_path):
                             raise Exception("Attempted Path Traversal in Tar File")
                 
-                    tar.extractall(path, members, numeric_owner) 
+                    tar.extractall(path, members, numeric_owner=numeric_owner) 
                     
                 
                 safe_extract(tarFile, globalDepsDir)
@@ -261,7 +261,7 @@ class MetaBuild(object):
                         if not is_within_directory(path, member_path):
                             raise Exception("Attempted Path Traversal in Tar File")
                 
-                    tar.extractall(path, members, numeric_owner) 
+                    tar.extractall(path, members, numeric_owner=numeric_owner) 
                     
                 
                 safe_extract(tarFile, buildDepPath)
@@ -297,7 +297,7 @@ class MetaBuild(object):
                         if not is_within_directory(path, member_path):
                             raise Exception("Attempted Path Traversal in Tar File")
                 
-                    tar.extractall(path, members, numeric_owner) 
+                    tar.extractall(path, members, numeric_owner=numeric_owner) 
                     
                 
                 safe_extract(tarFile, globalDepsDir)
